@@ -1,0 +1,20 @@
+# Ignore the examples folder and its contents
+examples/
+
+# Ignore common OS and editor files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# Ignore Python cache and virtual environments
+__pycache__/
+*.pyc
+env/
+venv/
+
+# Ignore PowerShell history
+*.pshistory
+
+# Ignore VS Code settings
+.vscode/
