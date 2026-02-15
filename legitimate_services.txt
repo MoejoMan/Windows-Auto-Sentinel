@@ -4,6 +4,15 @@
 # Lines starting with # are comments and ignored
 # Update this file to add new legitimate services or remove outdated ones
 
+# IMPORTANT SECURITY NOTE:
+# This whitelist uses broad patterns (e.g., "adobe*") to catch legitimate services
+# from trusted vendors. However, malicious services can potentially spoof these names.
+# Always verify suspicious services by checking:
+# - Service binary path and digital signature
+# - Service description and startup type
+# - Online research of unknown services
+# This whitelist reduces false positives but is not foolproof.
+
 # Core Windows services
 spooler
 wuauserv
@@ -225,6 +234,12 @@ xbox live net auth manager
 xbox live saving
 
 # Common third-party services from trusted vendors
+# WARNING: These broad patterns help reduce false positives but malicious services
+# could potentially use similar names. Always verify suspicious services manually.
+# Consider making patterns more specific (e.g., "adobe acrobat*" instead of "adobe*")
+# if you want stricter filtering at the cost of more false positives.
+
+# Software vendors
 adobe*
 apple*
 google*
@@ -232,6 +247,8 @@ intel*
 nvidia*
 amd*
 realtek*
+
+# Hardware manufacturers
 asus*
 lenovo*
 dell*
@@ -241,219 +258,56 @@ toshiba*
 samsung*
 sony*
 panasonic*
+
+# Virtualization & development tools
 vmware*
 virtualbox*
 hyper-v*
 oracle*
 java*
 nodejs*
+
+# Gaming platforms
 steam*
 epic*
 uplay*
 origin*
 battlenet*
+
+# Communication & productivity
 discord*
 teamspeak*
 skype*
 zoom*
 webex*
-gotomeeting*
 slack*
 teams*
 outlook*
 office*
-onenote*
-excel*
-word*
-powerpoint*
-access*
-publisher*
-visio*
-project*
-sharepoint*
-exchange*
+
+# Database & development
 sql*
 mysql*
 postgresql*
 mongodb*
 redis*
 elasticsearch*
-kibana*
-logstash*
-beats*
+git*
+svn*
+
+# Web servers & development
 apache*
 nginx*
 iis*
 tomcat*
-jboss*
-wildfly*
-weblogic*
-websphere*
-glassfish*
-jetty*
-lighttpd*
-cherokee*
-haproxy*
-varnish*
-squid*
-bind*
-dnsmasq*
-unbound*
-powerdns*
-dhcpd*
-isc-dhcp*
-freeradius*
+
+# Security & networking
 openvpn*
 wireguard*
-strongswan*
-pptp*
-l2tp*
-ipsec*
-openssh*
-dropbear*
-putty*
-winscp*
-filezilla*
-cyberduck*
-beyondcompare*
-winmerge*
-meld*
-diffmerge*
-tortoisesvn*
-tortoisegit*
-git*
-svn*
-mercurial*
-bazaar*
-perforce*
-clearcase*
-accurev*
-plasticscm*
-unity*
-unreal*
+
+# Creative software
 blender*
 maya*
-3dsmax*
-cinema4d*
-houdini*
-nuke*
-fusion*
-aftereffects*
-premiere*
 photoshop*
 illustrator*
-indesign*
-xd*
-sketch*
-figma*
-zeplin*
-invision*
-framer*
-principle*
-flinto*
-origami*
-form*
-proto*
-marvel*
-uxpin*
-balsamiq*
-axure*
-justinmind*
-pidoco*
-mockplus*
-moqups*
-lucidchart*
-drawio*
-visio*
-diagrams*
-gliffy*
-cacoo*
-processon*
-edraw*
-smartdraw*
-libreoffice*
-openoffice*
-wps*
-kingsoft*
-polaris*
-hancom*
-abiword*
-gnumeric*
-calligra*
-scribus*
-gimp*
-krita*
-inkscape*
-coreldraw*
-painter*
-photopaint*
-designer*
-xara*
-serif*
-adobe*
 autocad*
-solidworks*
-inventor*
-fusion360*
-revit*
-sketchup*
-rhino*
-blender*
-maya*
-3dsmax*
-cinema4d*
-houdini*
-nuke*
-fusion*
-aftereffects*
-premiere*
-photoshop*
-illustrator*
-indesign*
-xd*
-sketch*
-figma*
-zeplin*
-invision*
-framer*
-principle*
-flinto*
-origami*
-form*
-proto*
-marvel*
-uxpin*
-balsamiq*
-axure*
-justinmind*
-pidoco*
-mockplus*
-moqups*
-lucidchart*
-drawio*
-visio*
-diagrams*
-gliffy*
-cacoo*
-processon*
-edraw*
-smartdraw*
-libreoffice*
-openoffice*
-wps*
-kingsoft*
-polaris*
-hancom*
-abiword*
-gnumeric*
-calligra*
-scribus*
-gimp*
-krita*
-inkscape*
-coreldraw*
-painter*
-photopaint*
-designer*
-xara*
-serif*
