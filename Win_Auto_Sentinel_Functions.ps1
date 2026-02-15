@@ -6,7 +6,7 @@ function Get-ScheduledTasksSummary {
     # This function scans Windows Scheduled Tasks to show what tasks are set to run automatically.
     # Scheduled tasks can be used by legitimate software (like updates) or potentially by malware to persist.
     # We only look at tasks that are ready or running, and list their names and paths for review.
-    Write-Output "Scanning scheduled tasks..."
+    Write-Host "Scanning scheduled tasks..." -ForegroundColor Gray
     try {
         $tasks = Get-ScheduledTask | Where-Object { $_.State -eq 'Ready' -or $_.State -eq 'Running' } | Select-Object -Property TaskName, TaskPath
         $summary = $tasks | ForEach-Object { "Task: $($_.TaskName) ($($_.TaskPath))" }
@@ -24,7 +24,7 @@ function Get-RegistryRunKeysSummary {
     # This function checks the Windows Registry for programs set to run at startup.
     # The Run and RunOnce keys are common places where software adds itself to start automatically.
     # We scan both local machine (system-wide) and current user keys, listing the program names and paths.
-    Write-Output "Scanning registry Run/RunOnce keys..."
+    Write-Host "Scanning registry Run/RunOnce keys..." -ForegroundColor Gray
     try {
         $runKeys = @()
         $paths = @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce", "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce")
@@ -52,7 +52,7 @@ function Get-StartupFoldersSummary {
     # This function looks at the Windows Startup folders where shortcuts can be placed to run programs at login.
     # There are two folders: one for all users (system-wide) and one for the current user.
     # We list any files (usually shortcuts) found in these folders for you to review.
-    Write-Output "Scanning startup folders..."
+    Write-Host "Scanning startup folders..." -ForegroundColor Gray
     try {
         $startupItems = @()
         $paths = @("$env:ALLUSERSPROFILE\Microsoft\Windows\Start Menu\Programs\StartUp", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\StartUp")
@@ -78,7 +78,7 @@ function Get-USBHistorySummary {
     # This function checks the registry for a history of USB devices that have been connected to the computer.
     # This can help you see what external devices have been plugged in, which might be useful for security review.
     # We look in the USBSTOR registry key and list device friendly names.
-    Write-Output "Scanning USB device history..."
+    Write-Host "Scanning USB device history..." -ForegroundColor Gray
     try {
         $usbDevices = @()
         $usbStorPath = "HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR"
@@ -105,7 +105,7 @@ function Get-BrowserExtensionsSummary {
     # This function scans for installed browser extensions in Chrome and Firefox.
     # Extensions can add features but sometimes include unwanted or malicious code.
     # For Chrome, we read extension manifest files to get names; for Firefox, we list extension files.
-    Write-Output "Scanning browser extensions..."
+    Write-Host "Scanning browser extensions..." -ForegroundColor Gray
     try {
         $extensions = @()
         # Chrome extensions
@@ -150,7 +150,7 @@ function Get-PowerShellHistorySummary {
     # This function checks the PowerShell command history to see recent commands entered.
     # This can show what scripts or commands have been run, which might be useful for review.
     # We read the last 10 lines from the history file.
-    Write-Output "Scanning PowerShell history..."
+    Write-Host "Scanning PowerShell history..." -ForegroundColor Gray
     try {
         $historyPath = (Get-PSReadlineOption).HistorySavePath
         if (Test-Path $historyPath) {
@@ -173,7 +173,7 @@ function Get-PrefetchFilesSummary {
     # This function lists prefetch files, which Windows creates to speed up program loading.
     # Prefetch files can indicate what programs have been run recently.
     # We list the first 10 .pf files from the Prefetch directory.
-    Write-Output "Scanning prefetch files..."
+    Write-Host "Scanning prefetch files..." -ForegroundColor Gray
     try {
         $prefetchPath = "C:\Windows\Prefetch"
         if (Test-Path $prefetchPath) {
@@ -196,7 +196,7 @@ function Get-UnusualServicesSummary {
     # This function looks at Windows services that are running and set to start automatically.
     # Services are background programs; we filter out Microsoft ones to highlight potentially unusual ones.
     # We list the first 10 non-Microsoft services for review.
-    Write-Output "Scanning for unusual services..."
+    Write-Host "Scanning for unusual services..." -ForegroundColor Gray
     try {
         $services = Get-Service | Where-Object { $_.Status -eq 'Running' -and $_.StartType -eq 'Automatic' -and $_.Name -notlike 'Microsoft*' } | Select-Object -First 10
         $summary = $services | ForEach-Object { "Service: $($_.Name) - $($_.DisplayName)" }
@@ -214,7 +214,7 @@ function Get-EventLogEntriesSummary {
     # This function checks the Windows System event log for recent entries.
     # Event logs record system events, errors, and warnings, which can indicate issues or activity.
     # We show the newest 10 entries with source and a snippet of the message.
-    Write-Output "Scanning event log entries..."
+    Write-Host "Scanning event log entries..." -ForegroundColor Gray
     try {
         $events = Get-EventLog -LogName System -Newest 10 -ErrorAction SilentlyContinue
         $summary = $events | ForEach-Object { "Event: $($_.Source) - $($_.Message.Substring(0,50))..." }
@@ -232,7 +232,7 @@ function Get-HostsFileEntriesSummary {
     # This function reads the Windows hosts file, which maps hostnames to IP addresses.
     # The hosts file can be modified to redirect traffic or block sites.
     # We list non-comment lines that might have custom entries.
-    Write-Output "Scanning hosts file entries..."
+    Write-Host "Scanning hosts file entries..." -ForegroundColor Gray
     try {
         $hostsPath = "C:\Windows\System32\drivers\etc\hosts"
         if (Test-Path $hostsPath) {
@@ -255,7 +255,7 @@ function Get-FirewallRulesSummary {
     # This function lists enabled Windows Firewall rules.
     # Firewall rules control what network traffic is allowed or blocked.
     # We show the first 10 enabled rules with their names and actions.
-    Write-Output "Scanning firewall rules..."
+    Write-Host "Scanning firewall rules..." -ForegroundColor Gray
     try {
         $rules = Get-NetFirewallRule -Enabled True -ErrorAction SilentlyContinue | Select-Object -First 10
         $summary = $rules | ForEach-Object { "Rule: $($_.DisplayName) - $($_.Action)" }
