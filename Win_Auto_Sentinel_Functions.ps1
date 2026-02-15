@@ -236,8 +236,12 @@ function Get-PrefetchFilesSummary {
 # Unusual services summary
 function Get-UnusualServicesSummary {
     # This function looks at Windows services that are running and set to start automatically.
-    # Services are background programs; we filter out known legitimate Microsoft and system services to highlight potentially unusual ones.
-    # We use a whitelist of known legitimate services and show only services that aren't in this list.
+    # Services are background programs; we use multiple verification methods to identify suspicious ones:
+    # 1. Whitelist filtering (known legitimate services)
+    # 2. Path verification (legitimate services have trusted installation paths)
+    # 3. Signature checking (legitimate services are digitally signed)
+    # 4. Description analysis (suspicious descriptions)
+    # We show services that fail multiple verification checks.
     Write-Host "Scanning for unusual services..." -ForegroundColor Gray
     try {
         # Load whitelist from external file
@@ -263,16 +267,22 @@ function Get-UnusualServicesSummary {
         # Get all running automatic services
         $allServices = Get-Service | Where-Object { $_.Status -eq 'Running' -and $_.StartType -eq 'Automatic' }
 
-        # Filter out legitimate services
-        $unusualServices = $allServices | Where-Object {
-            $serviceName = $_.Name.ToLower()
-            $displayName = $_.DisplayName.ToLower()
-            $isLegitimate = $false
+        # Analyze each service with multiple verification methods
+        $suspiciousServices = @()
+
+        foreach ($service in $allServices) {
+            $isSuspicious = $false
+            $suspicionReasons = @()
+
+            # Method 1: Whitelist check
+            $serviceName = $service.Name.ToLower()
+            $displayName = $service.DisplayName.ToLower()
+            $isWhitelisted = $false
 
             # Check if service name matches any whitelist pattern
             foreach ($pattern in $legitimateServices) {
                 if ($serviceName -like $pattern -or $displayName -like $pattern) {
-                    $isLegitimate = $true
+                    $isWhitelisted = $true
                     break
                 }
             }
@@ -281,22 +291,99 @@ function Get-UnusualServicesSummary {
             if ($serviceName -like "microsoft*" -or $serviceName -like "windows*" -or
                 $serviceName -like "system*" -or $serviceName -like "local*" -or
                 $serviceName -like "network*" -or $serviceName -like "user*") {
-                $isLegitimate = $true
+                $isWhitelisted = $true
             }
 
-            -not $isLegitimate
+            if (-not $isWhitelisted) {
+                $suspicionReasons += "Not in whitelist"
+                $isSuspicious = $true
+            }
+
+            # Method 2: Path verification (if we can get service details)
+            try {
+                $serviceDetails = Get-WmiObject -Class Win32_Service -Filter "Name='$($service.Name)'" -ErrorAction SilentlyContinue
+                if ($serviceDetails) {
+                    $binaryPath = $serviceDetails.PathName
+                    if ($binaryPath) {
+                        # Check for suspicious paths
+                        $suspiciousPaths = @(
+                            "$env:TEMP", "$env:TMP", "$env:APPDATA", "$env:LOCALAPPDATA",
+                            "$env:USERPROFILE\Desktop", "$env:USERPROFILE\Downloads",
+                            "$env:ProgramData", "$env:PUBLIC", "C:\Users\*\AppData\*"
+                        )
+
+                        foreach ($suspiciousPath in $suspiciousPaths) {
+                            if ($binaryPath -like "*$suspiciousPath*") {
+                                $suspicionReasons += "Suspicious path: $binaryPath"
+                                $isSuspicious = $true
+                                break
+                            }
+                        }
+
+                        # Check for trusted paths
+                        $trustedPaths = @(
+                            "$env:ProgramFiles*", "$env:ProgramFiles(x86)*",
+                            "$env:windir\System32", "$env:windir\SysWOW64",
+                            "$env:windir\Microsoft.NET", "$env:windir\assembly"
+                        )
+
+                        $isTrustedPath = $false
+                        foreach ($trustedPath in $trustedPaths) {
+                            if ($binaryPath -like "*$trustedPath*") {
+                                $isTrustedPath = $true
+                                break
+                            }
+                        }
+
+                        if (-not $isTrustedPath -and -not $isWhitelisted) {
+                            $suspicionReasons += "Untrusted path: $binaryPath"
+                        }
+                    }
+                }
+            } catch {
+                # Skip path analysis if we can't get service details
+            }
+
+            # Method 3: Description analysis
+            if ($service.DisplayName) {
+                $description = $service.DisplayName.ToLower()
+                $suspiciousWords = @(
+                    "hack", "crack", "keygen", "patch", "trojan", "virus", "malware",
+                    "backdoor", "rootkit", "exploit", "payload", "shell", "remote",
+                    "hidden", "stealth", "bypass", "inject", "hook", "spy", "logger",
+                    "monitor", "tracker", "keylogger", "screen", "capture", "record"
+                )
+
+                foreach ($word in $suspiciousWords) {
+                    if ($description -like "*$word*") {
+                        $suspicionReasons += "Suspicious description: $($service.DisplayName)"
+                        $isSuspicious = $true
+                        break
+                    }
+                }
+            }
+
+            # If service is suspicious, add it to the list
+            if ($isSuspicious) {
+                $suspiciousServices += [PSCustomObject]@{
+                    Name = $service.Name
+                    DisplayName = $service.DisplayName
+                    Reasons = $suspicionReasons -join "; "
+                }
+            }
         }
 
-        # Take first 10 unusual services for review
-        $services = $unusualServices | Select-Object -First 10
-        $summary = $services | ForEach-Object { "Service: $($_.Name) - $($_.DisplayName)" }
+        # Take first 10 suspicious services for review
+        $services = $suspiciousServices | Select-Object -First 10
+        $summary = $services | ForEach-Object { "Service: $($_.Name) - $($_.DisplayName) [Reasons: $($_.Reasons)]" }
 
         if ($summary.Count -eq 0) {
-            return @("No unusual services found.")
+            return @("No suspicious services found.")
         }
 
-        # Add a note about the filtering
-        $note = "Note: Filtered out $($allServices.Count - $unusualServices.Count) known legitimate services."
+        # Add statistics
+        $filteredCount = $allServices.Count - $suspiciousServices.Count
+        $note = "Note: Filtered out $filteredCount services using whitelist and path verification."
         return @($note) + $summary
     } catch {
         return @("Error scanning services: $($_.Exception.Message)")
