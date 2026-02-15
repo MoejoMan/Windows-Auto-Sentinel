@@ -95,6 +95,34 @@ The HTML report includes:
 
 ---
 
+## Configuration and Maintenance
+
+### Service Whitelist
+WinAutoSentinel uses a whitelist of known legitimate Windows services to reduce false positives in the "Unusual Services" scan. This whitelist is stored in a separate file called `legitimate_services.txt` for easy maintenance.
+
+**To update the service whitelist:**
+1. Open `legitimate_services.txt` in any text editor
+2. Add new legitimate service patterns (one per line)
+3. Use wildcards (*) for patterns (e.g., `microsoft*` matches all Microsoft services)
+4. Lines starting with `#` are comments and ignored
+5. Empty lines are ignored
+
+**Example entries:**
+```
+# Known legitimate services
+spooler
+wuauserv
+eventlog
+microsoft*
+windows*
+adobe*
+google*
+```
+
+The tool will automatically load this file at runtime. If the file is missing, it falls back to basic filtering (Microsoft/Windows/system services only).
+
+---
+
 ## License
 MIT License
 
