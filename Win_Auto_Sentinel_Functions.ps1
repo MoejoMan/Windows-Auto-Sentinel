@@ -77,7 +77,7 @@ function Get-StartupFoldersSummary {
 function Get-USBHistorySummary {
     # This function checks the registry for a history of USB devices that have been connected to the computer.
     # This can help you see what external devices have been plugged in, which might be useful for security review.
-    # We look in the USBSTOR registry key and list device friendly names.
+    # We look in the USBSTOR registry key and parse device names to extract vendor and product information.
     Write-Host "Scanning USB device history..." -ForegroundColor Gray
     try {
         $usbDevices = @()
@@ -85,9 +85,16 @@ function Get-USBHistorySummary {
         if (Test-Path $usbStorPath) {
             $devices = Get-ChildItem -Path $usbStorPath -ErrorAction SilentlyContinue
             foreach ($device in $devices) {
-                $friendlyName = (Get-ItemProperty -Path $device.PSPath -Name FriendlyName -ErrorAction SilentlyContinue).FriendlyName
-                if ($friendlyName) {
-                    $usbDevices += "USB: $friendlyName"
+                # Parse device name: Disk&Ven_Vendor&Prod_Product&Rev_Revision
+                $deviceName = $device.Name.Split('\')[-1]
+                if ($deviceName -match 'Disk&Ven_(.*?)&Prod_(.*?)&Rev_(.*)') {
+                    $vendor = $matches[1]
+                    $product = $matches[2]
+                    $revision = $matches[3]
+                    $usbDevices += "USB: $vendor $product (Rev: $revision)"
+                } else {
+                    # Fallback to showing the raw device identifier
+                    $usbDevices += "USB: $deviceName"
                 }
             }
         }
@@ -104,7 +111,7 @@ function Get-USBHistorySummary {
 function Get-BrowserExtensionsSummary {
     # This function scans for installed browser extensions in Chrome and Firefox.
     # Extensions can add features but sometimes include unwanted or malicious code.
-    # For Chrome, we read extension manifest files to get names; for Firefox, we list extension files.
+    # For Chrome, we read extension manifest files and resolve localized names; for Firefox, we list extension files.
     Write-Host "Scanning browser extensions..." -ForegroundColor Gray
     try {
         $extensions = @()
@@ -113,11 +120,42 @@ function Get-BrowserExtensionsSummary {
         if (Test-Path $chromePath) {
             $chromeExts = Get-ChildItem -Path $chromePath -Directory -ErrorAction SilentlyContinue
             foreach ($ext in $chromeExts) {
-                $manifestPath = "$($ext.FullName)\$((Get-ChildItem -Path $ext.FullName -Directory | Select-Object -First 1).Name)\manifest.json"
-                if (Test-Path $manifestPath) {
-                    $manifest = Get-Content -Path $manifestPath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-                    if ($manifest.name) {
-                        $extensions += "Chrome: $($manifest.name)"
+                $versionDir = Get-ChildItem -Path $ext.FullName -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($versionDir) {
+                    $manifestPath = "$($versionDir.FullName)\manifest.json"
+                    if (Test-Path $manifestPath) {
+                        $manifest = Get-Content -Path $manifestPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+                        if ($manifest) {
+                            $extName = $manifest.name
+                            # Resolve localized names
+                            if ($extName -like "__MSG_*__") {
+                                $msgKey = $extName -replace "__MSG_|__"
+                                $localesPath = "$($versionDir.FullName)\_locales"
+                                if (Test-Path $localesPath) {
+                                    # Try English first, then fallback to any available locale
+                                    $enPath = "$localesPath\en\messages.json"
+                                    if (Test-Path $enPath) {
+                                        $messages = Get-Content -Path $enPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+                                        if ($messages -and $messages.$msgKey -and $messages.$msgKey.message) {
+                                            $extName = $messages.$msgKey.message
+                                        }
+                                    } else {
+                                        # Try any available locale
+                                        $localeDirs = Get-ChildItem -Path $localesPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+                                        if ($localeDirs) {
+                                            $msgPath = "$($localeDirs.FullName)\messages.json"
+                                            $messages = Get-Content -Path $msgPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+                                            if ($messages -and $messages.$msgKey -and $messages.$msgKey.message) {
+                                                $extName = $messages.$msgKey.message
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if ($extName) {
+                                $extensions += "Chrome: $extName"
+                            }
+                        }
                     }
                 }
             }
@@ -173,6 +211,7 @@ function Get-PrefetchFilesSummary {
     # This function lists prefetch files, which Windows creates to speed up program loading.
     # Prefetch files can indicate what programs have been run recently.
     # We list the first 10 .pf files from the Prefetch directory.
+    # NOTE: Requires administrator privileges to access C:\Windows\Prefetch
     Write-Host "Scanning prefetch files..." -ForegroundColor Gray
     try {
         $prefetchPath = "C:\Windows\Prefetch"
@@ -180,13 +219,16 @@ function Get-PrefetchFilesSummary {
             $prefetchFiles = Get-ChildItem -Path $prefetchPath -Filter "*.pf" -File -ErrorAction SilentlyContinue | Select-Object -First 10
             $summary = $prefetchFiles | ForEach-Object { "Prefetch: $($_.Name)" }
             if ($summary.Count -eq 0) {
-                return @("No prefetch files found.")
+                return @("No prefetch files found (may require admin privileges).")
             }
             return $summary
         } else {
             return @("Prefetch directory not found.")
         }
     } catch {
+        if ($_.Exception.Message -like "*Access*denied*") {
+            return @("Access denied to prefetch directory (requires admin privileges).")
+        }
         return @("Error scanning prefetch files: $($_.Exception.Message)")
     }
 }
