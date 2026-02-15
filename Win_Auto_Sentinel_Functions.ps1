@@ -236,16 +236,161 @@ function Get-PrefetchFilesSummary {
 # Unusual services summary
 function Get-UnusualServicesSummary {
     # This function looks at Windows services that are running and set to start automatically.
-    # Services are background programs; we filter out Microsoft ones to highlight potentially unusual ones.
-    # We list the first 10 non-Microsoft services for review.
+    # Services are background programs; we filter out known legitimate Microsoft and system services to highlight potentially unusual ones.
+    # We use a whitelist of known legitimate services and show only services that aren't in this list.
     Write-Host "Scanning for unusual services..." -ForegroundColor Gray
     try {
-        $services = Get-Service | Where-Object { $_.Status -eq 'Running' -and $_.StartType -eq 'Automatic' -and $_.Name -notlike 'Microsoft*' } | Select-Object -First 10
+        # Comprehensive whitelist of legitimate Windows services
+        $legitimateServices = @(
+            # Core Windows services
+            "spooler", "wuauserv", "eventlog", "dns", "dhcp", "lanmanserver", "lanmanworkstation",
+            "netlogon", "rpcss", "rpc locator", "winmgmt", "w32time", "schedule", "samss",
+            "lsass", "services", "svchost", "system events broker", "security center",
+            "windows defender antivirus service", "windows defender firewall",
+            "windows security service", "windows update", "bits", "cryptsvc", "trustedinstaller",
+            "wscsvc", "sens", "event system", "com+ event system", "com+ system application",
+            "distributed link tracking client", "server", "workstation", "tcp/ip netbios helper",
+            "dns client", "dhcp client", "network location awareness", "network store interface service",
+            "nsi", "ip helper", "ike and authip ipsec keying modules", "ipsec policy agent",
+            "windows firewall", "base filtering engine", "windows defender security intelligence service",
+            "microsoft defender antivirus service", "security accounts manager", "remote procedure call (rpc)",
+            "remote procedure call (rpc) locator", "windows management instrumentation",
+            "windows time", "task scheduler", "secondary logon", "application information",
+            "application management", "background intelligent transfer service",
+            "certificate propagation", "cryptographic services", "dcsvc", "device association service",
+            "device install service", "device setup manager", "diagnostic policy service",
+            "diagnostic service host", "diagnostic system host", "distributed cache",
+            "extensible authentication protocol", "function discovery provider host",
+            "function discovery resource publication", "group policy client", "health key and certificate management",
+            "human interface device access", "hyper-v guest service interface",
+            "hyper-v heartbeat service", "hyper-v data exchange service", "hyper-v time synchronization service",
+            "hyper-v power shell direct service", "hyper-v remote desktop virtualization service",
+            "hyper-v guest shutdown service", "hyper-v volume shadow copy requestor",
+            "internet connection sharing (ics)", "kdc", "ktmrm for distributed transaction coordinator",
+            "link-layer topology discovery mapper", "local session manager", "microsoft account sign-in assistant",
+            "microsoft passport", "microsoft passport container", "microsoft software shadow copy provider",
+            "microsoft storage spaces smp", "net.tcp port sharing service", "netlogon",
+            "network access protection agent", "network connections", "network list service",
+            "network location awareness 2", "offline files", "peer name resolution protocol",
+            "peer networking grouping", "peer networking identity manager", "performance counter dll host",
+            "performance logs & alerts", "phone service", "plug and play", "pnp-x device host",
+            "pnp-x ip bus enumerator", "portable device enumerator service", "power",
+            "print spooler", "problem reports and solutions control panel support",
+            "program compatibility assistant service", "quality windows audio video experience",
+            "radio management service", "remote access auto connection manager",
+            "remote access connection manager", "remote desktop configuration",
+            "remote desktop services", "remote desktop services user mode port redirector",
+            "remote procedure call (rpc) with authentication", "remote registry",
+            "resultant set of policy provider", "routing and remote access", "rpc endpoint mapper",
+            "secondary logon", "secure socket tunneling protocol service", "security accounts manager",
+            "server", "shell hardware detection", "smart card", "smart card device enumeration service",
+            "smart card removal policy", "snmp trap", "software protection", "special administration console helper",
+            "spot verifier", "ssdp discovery", "state repository service", "still image acquisition events",
+            "storage service", "storage treshold", "superfetch", "sync host", "sysmain",
+            "system event notification service", "system events broker", "tablet pc input service",
+            "task scheduler", "tcp/ip netbios helper", "telephony", "themes", "thread ordering server",
+            "tile data model server", "time broker", "touch keyboard and handwriting panel service",
+            "upnp device host", "user access logging service", "user data access", "user data storage",
+            "user experience virtualization service", "user manager", "user profile service",
+            "virtual disk", "volume shadow copy", "wallet service", "webclient", "webthreatdefsvc",
+            "webthreatdefusersvc", "windows activation technologies service", "windows audio",
+            "windows audio endpoint builder", "windows backup", "windows biometrics service",
+            "windows camera frame server", "windows color system", "windows connection manager",
+            "windows defender advanced threat protection service", "windows defender antivirus network inspection service",
+            "windows defender firewall", "windows defender security intelligence service",
+            "windows device guard", "windows driver foundation - user-mode driver framework",
+            "windows encryption provider host service", "windows error reporting service",
+            "windows event collector", "windows event log", "windows firewall", "windows font cache service",
+            "windows image acquisition (wia)", "windows insider service", "windows license manager service",
+            "windows live id sign-in assistant", "windows location framework", "windows management instrumentation",
+            "windows media player network sharing service", "windows mobile hotspot service",
+            "windows modules installer", "windows push notifications system service",
+            "windows push notifications user service", "windows remote management (ws-management)",
+            "windows search", "windows security center", "windows security service",
+            "windows store service (wservice)", "windows system assessment tool",
+            "windows update", "windows update medic service", "winhttp web proxy auto-discovery service",
+            "winrm", "wmi performance adapter", "work folders", "workstation", "wwan auto config",
+            "xbox accessory management service", "xbox live auth manager", "xbox live game save",
+            "xbox live licensing service", "xbox live net auth manager", "xbox live saving",
+
+            # Common third-party services from trusted vendors
+            "adobe*", "apple*", "google*", "intel*", "nvidia*", "amd*", "realtek*", "asus*",
+            "lenovo*", "dell*", "hp*", "acer*", "toshiba*", "samsung*", "sony*", "panasonic*",
+            "vmware*", "virtualbox*", "hyper-v*", "oracle*", "java*", "python*", "nodejs*",
+            "steam*", "epic*", "uplay*", "origin*", "battlenet*", "discord*", "teamspeak*",
+            "skype*", "zoom*", "webex*", "gotomeeting*", "slack*", "teams*", "outlook*",
+            "office*", "onenote*", "excel*", "word*", "powerpoint*", "access*", "publisher*",
+            "visio*", "project*", "sharepoint*", "exchange*", "sql*", "mysql*", "postgresql*",
+            "mongodb*", "redis*", "elasticsearch*", "kibana*", "logstash*", "beats*",
+            "apache*", "nginx*", "iis*", "tomcat*", "jboss*", "wildfly*", "weblogic*",
+            "websphere*", "glassfish*", "jetty*", "lighttpd*", "cherokee*", "haproxy*",
+            "varnish*", "squid*", "bind*", "dnsmasq*", "unbound*", "powerdns*",
+            "dhcpd*", "isc-dhcp*", "freeradius*", "openvpn*", "wireguard*", "strongswan*",
+            "pptp*", "l2tp*", "ipsec*", "openssh*", "dropbear*", "putty*", "winscp*",
+            "filezilla*", "cyberduck*", "beyondcompare*", "winmerge*", "meld*", "diffmerge*",
+            "tortoisesvn*", "tortoisegit*", "git*", "svn*", "mercurial*", "bazaar*",
+            "perforce*", "clearcase*", "accurev*", "plasticscm*", "unity*", "unreal*",
+            "blender*", "maya*", "3dsmax*", "cinema4d*", "houdini*", "nuke*", "fusion*",
+            "aftereffects*", "premiere*", "photoshop*", "illustrator*", "indesign*", "xd*",
+            "sketch*", "figma*", "zeplin*", "invision*", "framer*", "principle*", "flinto*",
+            "origami*", "form*", "proto*", "marvel*", "uxpin*", "balsamiq*", "axure*",
+            "justinmind*", "pidoco*", "mockplus*", "moqups*", "lucidchart*", "drawio*",
+            "visio*", "diagrams*", "gliffy*", "cacoo*", "processon*", "edraw*", "smartdraw*",
+            "libreoffice*", "openoffice*", "wps*", "kingsoft*", "polaris*", "hancom*",
+            "abiword*", "gnumeric*", "calligra*", "scribus*", "gimp*", "krita*", "inkscape*",
+            "coreldraw*", "painter*", "photopaint*", "designer*", "xara*", "serif*",
+            "adobe*", "autocad*", "solidworks*", "inventor*", "fusion360*", "revit*",
+            "sketchup*", "rhino*", "blender*", "maya*", "3dsmax*", "cinema4d*", "houdini*",
+            "nuke*", "fusion*", "aftereffects*", "premiere*", "photoshop*", "illustrator*",
+            "indesign*", "xd*", "sketch*", "figma*", "zeplin*", "invision*", "framer*",
+            "principle*", "flinto*", "origami*", "form*", "proto*", "marvel*", "uxpin*",
+            "balsamiq*", "axure*", "justinmind*", "pidoco*", "mockplus*", "moqups*",
+            "lucidchart*", "drawio*", "visio*", "diagrams*", "gliffy*", "cacoo*",
+            "processon*", "edraw*", "smartdraw*", "libreoffice*", "openoffice*", "wps*",
+            "kingsoft*", "polaris*", "hancom*", "abiword*", "gnumeric*", "calligra*",
+            "scribus*", "gimp*", "krita*", "inkscape*", "coreldraw*", "painter*",
+            "photopaint*", "designer*", "xara*", "serif*", "adobe*", "autocad*",
+            "solidworks*", "inventor*", "fusion360*", "revit*", "sketchup*", "rhino*"
+        )
+
+        # Get all running automatic services
+        $allServices = Get-Service | Where-Object { $_.Status -eq 'Running' -and $_.StartType -eq 'Automatic' }
+
+        # Filter out legitimate services
+        $unusualServices = $allServices | Where-Object {
+            $serviceName = $_.Name.ToLower()
+            $displayName = $_.DisplayName.ToLower()
+            $isLegitimate = $false
+
+            # Check if service name matches any whitelist pattern
+            foreach ($pattern in $legitimateServices) {
+                if ($serviceName -like $pattern -or $displayName -like $pattern) {
+                    $isLegitimate = $true
+                    break
+                }
+            }
+
+            # Also exclude services that start with common prefixes
+            if ($serviceName -like "microsoft*" -or $serviceName -like "windows*" -or
+                $serviceName -like "system*" -or $serviceName -like "local*" -or
+                $serviceName -like "network*" -or $serviceName -like "user*") {
+                $isLegitimate = $true
+            }
+
+            -not $isLegitimate
+        }
+
+        # Take first 10 unusual services for review
+        $services = $unusualServices | Select-Object -First 10
         $summary = $services | ForEach-Object { "Service: $($_.Name) - $($_.DisplayName)" }
+
         if ($summary.Count -eq 0) {
             return @("No unusual services found.")
         }
-        return $summary
+
+        # Add a note about the filtering
+        $note = "Note: Filtered out $($allServices.Count - $unusualServices.Count) known legitimate services."
+        return @($note) + $summary
     } catch {
         return @("Error scanning services: $($_.Exception.Message)")
     }
@@ -398,6 +543,25 @@ function New-HTMLReport {
     }
 
     $html += @"
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('tips')">
+                <strong>Helpful Tips for Reviewing Findings</strong>
+            </div>
+            <div class="section-content" id="tips">
+                <div class="item"><strong>Scheduled Tasks:</strong> Look for tasks with unusual names, unknown publishers, or suspicious commands. Check task triggers and actions.</div>
+                <div class="item"><strong>Registry Run Keys:</strong> These run at startup. Verify all entries are from trusted software. Remove unknown entries carefully.</div>
+                <div class="item"><strong>Startup Folders:</strong> Files here run when any user logs in. Check file properties and signatures for legitimacy.</div>
+                <div class="item"><strong>USB History:</strong> Review device names and connection times. Look for unexpected or suspicious devices.</div>
+                <div class="item"><strong>Browser Extensions:</strong> Check extension permissions and publishers. Remove extensions you don't recognize or use.</div>
+                <div class="item"><strong>PowerShell History:</strong> Review recent commands for suspicious activity. Clear history if privacy is a concern.</div>
+                <div class="item"><strong>Prefetch Files:</strong> These show recently run programs. Look for unknown executables or suspicious file paths.</div>
+                <div class="item"><strong>Unusual Services:</strong> Services listed here are not in the known legitimate services database. Research each one.</div>
+                <div class="item"><strong>Event Log Entries:</strong> Look for error patterns, security events, or unusual system activity.</div>
+                <div class="item"><strong>Hosts File Entries:</strong> Custom entries can redirect traffic. Ensure all entries are legitimate.</div>
+                <div class="item"><strong>Firewall Rules:</strong> Review inbound/outbound rules. Unexpected open ports may indicate security risks.</div>
+                <div class="item" style="background: #fff3cd;"><strong>General Tips:</strong> Research any unknown findings online before taking action. False positives are possible. Use checkboxes to mark items you've reviewed and recognize.</div>
+            </div>
+        </div>
         <div class="footer">
             <p>WinAutoSentinel - Review your Windows autostart items safely</p>
             <p>Report generated for educational and security review purposes</p>

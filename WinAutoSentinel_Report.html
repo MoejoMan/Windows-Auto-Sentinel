@@ -38,16 +38,13 @@
         <div class="summary">
             <h2>Report Summary</h2>
             <p>This report shows Windows autostart and persistence mechanisms found on your system. Check the boxes for items you recognize, and expand sections for details.</p>
-            <p><strong>Generated:</strong> 2026-02-15 22:16:57</p>
+            <p><strong>Generated:</strong> 2026-02-15 23:24:07</p>
             <p><strong>Computer:</strong> JOES-LAPTOP</p>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section1')">
-                <strong>Registry Run Keys</strong> (6 items)
+                <strong>Registry Run Keys</strong> (5 items)
             </div>
             <div class="section-content" id="section1">                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning registry Run/RunOnce keys...</span>
-                </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>HKLM: SecurityHealth - C:\WINDOWS\system32\SecurityHealthSystray.exe</span>
                 </div>                <div class="item">
@@ -65,12 +62,9 @@
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section2')">
-                <strong>Firewall Rules</strong> (11 items)
+                <strong>Firewall Rules</strong> (10 items)
             </div>
             <div class="section-content" id="section2">                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning firewall rules...</span>
-                </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Rule: Wi-Fi Direct Spooler Use (Out) - Allow</span>
                 </div>                <div class="item">
@@ -107,22 +101,10 @@
             </div>
             <div class="section-content" id="section3">                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning for unusual services...</span>
+                    <span>Note: Filtered out 57 known legitimate services.</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Service: ACCSvc - ACC Service</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Service: AESMService - Intel® SGX AESM</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Service: AudioEndpointBuilder - Windows Audio Endpoint Builder</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Service: Audiosrv - Windows Audio</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Service: BFE - Base Filtering Engine</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Service: BrokerInfrastructure - Background Tasks Infrastructure Service</span>
@@ -138,14 +120,29 @@
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Service: ClickToRunSvc - Microsoft Office Click-to-Run Service</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>Service: CoreMessagingRegistrar - CoreMessaging</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>Service: DcomLaunch - DCOM Server Process Launcher</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>Service: DispBrokerDesktopSvc - Display Policy Service</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>Service: DoSvc - Delivery Optimization</span>
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section4')">
-                <strong>Event Log Entries</strong> (11 items)
+                <strong>Event Log Entries</strong> (10 items)
             </div>
             <div class="section-content" id="section4">                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning event log entries...</span>
+                    <span>Event: Microsoft-Windows-Kernel-Power - The description for Event ID '105' in Source 'Micr...</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>Event: Microsoft-Windows-Time-Service - The time provider 'VMICTimeProvider' has indicated...</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Event: Microsoft-Windows-Time-Service - The time provider 'VMICTimeProvider' has indicated...</span>
@@ -170,58 +167,52 @@
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Event: Microsoft-Windows-Kernel-General - The description for Event ID '11' in Source 'Micro...</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Event: Microsoft-Windows-Kernel-Power - The description for Event ID '105' in Source 'Micr...</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Event: Microsoft-Windows-Kernel-Power - The description for Event ID '105' in Source 'Micr...</span>
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section5')">
-                <strong>USB Device History</strong> (2 items)
+                <strong>USB Device History</strong> (4 items)
             </div>
             <div class="section-content" id="section5">                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning USB device history...</span>
+                    <span>USB: Raspberr Pico (Rev: 1.0)</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>No USB devices found in history.</span>
+                    <span>USB: RPI RP2 (Rev: 2)</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>USB: Samsung U5 (Rev: 0100)</span>
+                </div>                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>USB: SanDisk Cruzer_Blade (Rev: 1.00)</span>
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section6')">
-                <strong>Browser Extensions</strong> (7 items)
+                <strong>Browser Extensions</strong> (6 items)
             </div>
             <div class="section-content" id="section6">                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning browser extensions...</span>
-                </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Chrome: Process Feedback for Google Docs</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Chrome: __MSG_extName__</span>
+                    <span>Chrome: Google Docs Offline</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Chrome: __MSG_extName__</span>
+                    <span>Chrome: Adblock for YouTube & Chrome - All Block</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Chrome: GPTZero: AI Detection & Writing Tools for Google Docs</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Chrome: __MSG_APP_NAME__</span>
+                    <span>Chrome: Chrome Web Store Payments</span>
                 </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Chrome: __MSG_extName__</span>
+                    <span>Chrome: Bitwarden Password Manager</span>
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section7')">
-                <strong>Scheduled Tasks</strong> (156 items)
+                <strong>Scheduled Tasks</strong> (155 items)
             </div>
             <div class="section-content" id="section7">                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning scheduled tasks...</span>
-                </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Task: ACCBackgroundApplication (\)</span>
                 </div>                <div class="item">
@@ -689,23 +680,17 @@
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section8')">
-                <strong>Prefetch Files</strong> (2 items)
+                <strong>Prefetch Files</strong> (1 items)
             </div>
             <div class="section-content" id="section8">                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning prefetch files...</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>No prefetch files found.</span>
+                    <span>No prefetch files found (may require admin privileges).</span>
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section9')">
-                <strong>PowerShell History</strong> (11 items)
+                <strong>PowerShell History</strong> (10 items)
             </div>
             <div class="section-content" id="section9">                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning PowerShell history...</span>
-                </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>PS Command: git add --all</span>
                 </div>                <div class="item">
@@ -738,27 +723,40 @@
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section10')">
-                <strong>Hosts File Entries</strong> (2 items)
+                <strong>Hosts File Entries</strong> (1 items)
             </div>
             <div class="section-content" id="section10">                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning hosts file entries...</span>
-                </div>                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>No custom hosts entries found.</span>
                 </div>            </div>
         </div>        <div class="section">
             <div class="section-header" onclick="toggleSection('section11')">
-                <strong>Startup Folders</strong> (2 items)
+                <strong>Startup Folders</strong> (1 items)
             </div>
             <div class="section-content" id="section11">                <div class="item">
                     <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
-                    <span>Scanning startup folders...</span>
-                </div>                <div class="item">
-                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
                     <span>Startup: pageant.exe (2).lnk (C:\Users\jhg56\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\StartUp)</span>
                 </div>            </div>
-        </div>        <div class="footer">
+        </div>        <div class="section">
+            <div class="section-header" onclick="toggleSection('tips')">
+                <strong>Helpful Tips for Reviewing Findings</strong>
+            </div>
+            <div class="section-content" id="tips">
+                <div class="item"><strong>Scheduled Tasks:</strong> Look for tasks with unusual names, unknown publishers, or suspicious commands. Check task triggers and actions.</div>
+                <div class="item"><strong>Registry Run Keys:</strong> These run at startup. Verify all entries are from trusted software. Remove unknown entries carefully.</div>
+                <div class="item"><strong>Startup Folders:</strong> Files here run when any user logs in. Check file properties and signatures for legitimacy.</div>
+                <div class="item"><strong>USB History:</strong> Review device names and connection times. Look for unexpected or suspicious devices.</div>
+                <div class="item"><strong>Browser Extensions:</strong> Check extension permissions and publishers. Remove extensions you don't recognize or use.</div>
+                <div class="item"><strong>PowerShell History:</strong> Review recent commands for suspicious activity. Clear history if privacy is a concern.</div>
+                <div class="item"><strong>Prefetch Files:</strong> These show recently run programs. Look for unknown executables or suspicious file paths.</div>
+                <div class="item"><strong>Unusual Services:</strong> Services listed here are not in the known legitimate services database. Research each one.</div>
+                <div class="item"><strong>Event Log Entries:</strong> Look for error patterns, security events, or unusual system activity.</div>
+                <div class="item"><strong>Hosts File Entries:</strong> Custom entries can redirect traffic. Ensure all entries are legitimate.</div>
+                <div class="item"><strong>Firewall Rules:</strong> Review inbound/outbound rules. Unexpected open ports may indicate security risks.</div>
+                <div class="item" style="background: #fff3cd;"><strong>General Tips:</strong> Research any unknown findings online before taking action. False positives are possible. Use checkboxes to mark items you've reviewed and recognize.</div>
+            </div>
+        </div>
+        <div class="footer">
             <p>WinAutoSentinel - Review your Windows autostart items safely</p>
             <p>Report generated for educational and security review purposes</p>
         </div>
