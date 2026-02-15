@@ -267,3 +267,109 @@ function Get-FirewallRulesSummary {
         return @("Error scanning firewall rules: $($_.Exception.Message)")
     }
 }
+
+# HTML Report Generation
+function New-HTMLReport {
+    param(
+        [hashtable]$Results,
+        [string]$OutputPath = "WinAutoSentinel_Report.html"
+    )
+
+    # This function generates an interactive HTML report with collapsible sections and review checkboxes.
+    # Users can check items they recognize and expand sections to see details.
+    # The report is saved to the specified path for easy sharing and offline review.
+
+    $html = @"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WinAutoSentinel Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .summary { background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .section { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .section-header { background: #3498db; color: white; padding: 10px; cursor: pointer; border-radius: 5px 5px 0 0; }
+        .section-content { padding: 15px; display: none; }
+        .item { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 3px; }
+        .checkbox { margin-right: 10px; }
+        .recognized { background: #d4edda !important; }
+        .footer { text-align: center; margin-top: 30px; color: #7f8c8d; font-size: 0.9em; }
+    </style>
+"@
+
+    $html += @"
+    <script>
+        function toggleSection(id) {
+            var content = document.getElementById(id);
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function markRecognized(checkbox) {
+            var item = checkbox.parentElement;
+            if (checkbox.checked) {
+                item.classList.add('recognized');
+            } else {
+                item.classList.remove('recognized');
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>WinAutoSentinel Report</h1>
+        <div class="summary">
+            <h2>Report Summary</h2>
+            <p>This report shows Windows autostart and persistence mechanisms found on your system. Check the boxes for items you recognize, and expand sections for details.</p>
+            <p><strong>Generated:</strong> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
+            <p><strong>Computer:</strong> $env:COMPUTERNAME</p>
+        </div>
+"@
+
+    $sectionId = 0
+    foreach ($category in $Results.Keys) {
+        $sectionId++
+        $html += @"
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('section$sectionId')">
+                <strong>$category</strong> ($($Results[$category].Count) items)
+            </div>
+            <div class="section-content" id="section$sectionId">
+"@
+
+        foreach ($item in $Results[$category]) {
+            $html += @"
+                <div class="item">
+                    <input type="checkbox" class="checkbox" onchange="markRecognized(this)">
+                    <span>$item</span>
+                </div>
+"@
+        }
+
+        $html += @"
+            </div>
+        </div>
+"@
+    }
+
+    $html += @"
+        <div class="footer">
+            <p>WinAutoSentinel - Review your Windows autostart items safely</p>
+            <p>Report generated for educational and security review purposes</p>
+        </div>
+    </div>
+</body>
+</html>
+"@
+
+    try {
+        $html | Out-File -FilePath $OutputPath -Encoding UTF8
+        Write-Output "HTML report saved to: $OutputPath"
+    } catch {
+        Write-Output "Error saving HTML report: $($_.Exception.Message)"
+    }
+}
+

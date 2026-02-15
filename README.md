@@ -75,7 +75,23 @@ Most autostart and persistence tools for Windows are built for advanced users or
 
 ---
 
+## Usage
 
+### Basic Console Output
+```powershell
+.\Win_Auto_Sentinel_Main.ps1
+```
+
+### Generate Interactive HTML Report
+```powershell
+.\Win_Auto_Sentinel_Main.ps1 -ExportHTML
+```
+
+The HTML report includes:
+- Collapsible sections for each scan category
+- Checkboxes to mark items you recognize
+- Visual highlighting for recognized items
+- Offline, shareable format for review
 
 ---
 

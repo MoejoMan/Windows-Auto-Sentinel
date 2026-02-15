@@ -10,8 +10,10 @@
     License: MIT
 #>
 
-# Optional: Argument parsing (future)
-# param()
+param(
+    [switch]$ExportHTML,
+    [string]$OutputPath = "WinAutoSentinel_Report.html"
+)
 
 # Import functions if split into a second file
 . "$PSScriptRoot\Win_Auto_Sentinel_Functions.ps1"
@@ -59,6 +61,11 @@ foreach ($category in $results.Keys) {
     foreach ($item in $results[$category]) {
         Write-Host "- $item"
     }
+}
+
+# Generate HTML report if requested
+if ($ExportHTML) {
+    New-HTMLReport -Results $results -OutputPath $OutputPath
 }
 
 Write-Host "\nFramework ready. Add scan logic and functions as needed."
