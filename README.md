@@ -1,5 +1,9 @@
 # WinAutoSentinel
 
+<p align="center">
+  <img src="images/BANNER.png" alt="WinAutoSentinel Banner" width="700">
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://docs.microsoft.com/en-us/powershell/)
 [![Windows 10/11](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6.svg)](https://www.microsoft.com/windows)
@@ -7,9 +11,30 @@
 
 **A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard — all in pure PowerShell with zero external dependencies.**
 
-<!-- Screenshots: replace these paths with actual screenshots after your first release -->
-<!-- ![Dashboard Screenshot](screenshots/dashboard.png) -->
-<!-- ![Scan Config Screenshot](screenshots/config.png) -->
+<p align="center">
+  <img src="images/image.png" alt="Security Score" width="700">
+  <br><em>Security health score with risk breakdown</em>
+</p>
+
+<p align="center">
+  <img src="images/image2.png" alt="Security Report" width="700">
+  <br><em>Interactive security report in the GUI</em>
+</p>
+
+<p align="center">
+  <img src="images/image3.png" alt="Scan Categories" width="700">
+  <br><em>Scan categories — choose what to scan</em>
+</p>
+
+<p align="center">
+  <img src="images/image4.png" alt="More Scan Categories" width="700">
+  <br><em>More scan categories with admin-required badges</em>
+</p>
+
+<p align="center">
+  <img src="images/CLI.png" alt="CLI Mode" width="700">
+  <br><em>CLI mode — console output with risk summary</em>
+</p>
 
 ---
 

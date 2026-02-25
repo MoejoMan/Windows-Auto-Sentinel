@@ -2,7 +2,9 @@
 setlocal EnableDelayedExpansion
 title WinAutoSentinel
 color 0F
-mode con: cols=80 lines=40
+mode con: cols=100 lines=50
+REM Set a large scroll buffer so output is scrollable
+powershell -NoProfile -Command "$b=$Host.UI.RawUI.BufferSize; $b.Height=9999; $b.Width=100; $Host.UI.RawUI.BufferSize=$b" >nul 2>&1
 
 REM ============================================================================
 REM  WinAutoSentinel - One-Click Launcher
@@ -144,10 +146,10 @@ REM ============================================================================
 REM  Option 3: CLI + HTML Report
 REM ============================================================================
 :cliReport
-cls
 echo.
 echo  +--------------------------------------------------------------+
 echo  ^|  Running CLI scan with HTML report generation...            ^|
+echo  ^|  (Scroll up to review output after scan completes)          ^|
 echo  +--------------------------------------------------------------+
 echo.
 powershell.exe -ExecutionPolicy Bypass -File "Win_Auto_Sentinel_Main.ps1" -ExportHTML -AutoOpen
@@ -165,10 +167,10 @@ REM ============================================================================
 REM  Option 4: Dry Run
 REM ============================================================================
 :dryRun
-cls
 echo.
 echo  +--------------------------------------------------------------+
 echo  ^|  DRY RUN - showing what each scan reads (nothing runs)      ^|
+echo  ^|  (Scroll up to review output after it completes)            ^|
 echo  +--------------------------------------------------------------+
 echo.
 powershell.exe -ExecutionPolicy Bypass -File "Win_Auto_Sentinel_Main.ps1" -WhatIf

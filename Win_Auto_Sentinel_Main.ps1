@@ -56,75 +56,75 @@ Write-Host ''
 # ============================================================================
 if ($WhatIf) {
     Write-Host '  ============================================================' -ForegroundColor Magenta
-    Write-Host '   DRY-RUN MODE — No scans will be executed.'                   -ForegroundColor Magenta
+    Write-Host '   DRY-RUN MODE -- No scans will be executed.'                   -ForegroundColor Magenta
     Write-Host '   Below is exactly what each scan reads. Nothing is modified.' -ForegroundColor Magenta
     Write-Host '  ============================================================' -ForegroundColor Magenta
     Write-Host ''
 
     $scanDetails = [ordered]@{
         'Scheduled Tasks'       = @(
-            'Get-ScheduledTask                              → Lists active task definitions (name, triggers, actions)'
-            'Get-AuthenticodeSignature                      → Checks code signatures on task binaries'
+            'Get-ScheduledTask                              -- Lists active task definitions (name, triggers, actions)'
+            'Get-AuthenticodeSignature                      -- Checks code signatures on task binaries'
         )
         'Registry Run Keys'     = @(
-            'Get-ItemProperty HKLM:\...\Run                 → Reads HKLM Run, RunOnce, WOW6432Node keys'
-            'Get-ItemProperty HKCU:\...\Run                 → Reads HKCU Run, RunOnce, WOW6432Node keys'
+            'Get-ItemProperty HKLM:\...\Run                 -- Reads HKLM Run, RunOnce, WOW6432Node keys'
+            'Get-ItemProperty HKCU:\...\Run                 -- Reads HKCU Run, RunOnce, WOW6432Node keys'
         )
         'Startup Folders'       = @(
-            'Get-ChildItem "$env:APPDATA\...\Startup"       → Lists per-user startup folder contents'
-            'Get-ChildItem "$env:PROGRAMDATA\...\Startup"   → Lists all-users startup folder contents'
+            'Get-ChildItem "$env:APPDATA\...\Startup"       -- Lists per-user startup folder contents'
+            'Get-ChildItem "$env:PROGRAMDATA\...\Startup"   -- Lists all-users startup folder contents'
         )
         'WMI Persistence'       = @(
-            'Get-CimInstance root\subscription               → Reads WMI event filters, consumers, and bindings'
+            'Get-CimInstance root\subscription               -- Reads WMI event filters, consumers, and bindings'
         )
         'Unusual Services'      = @(
-            'Get-CimInstance Win32_Service                   → Lists running auto-start services'
-            'Get-Content legitimate_services.txt             → Loads whitelist patterns'
-            'Get-AuthenticodeSignature                       → Checks code signatures on service binaries'
+            'Get-CimInstance Win32_Service                   -- Lists running auto-start services'
+            'Get-Content legitimate_services.txt             -- Loads whitelist patterns'
+            'Get-AuthenticodeSignature                       -- Checks code signatures on service binaries'
         )
         'Defender Exclusions'   = @(
-            'Get-MpPreference                                → Reads Defender exclusion lists (paths, processes, extensions)'
+            'Get-MpPreference                                -- Reads Defender exclusion lists (paths, processes, extensions)'
         )
         'Running Processes'     = @(
-            'Get-CimInstance Win32_Process                   → Lists all running processes with paths and command lines'
+            'Get-CimInstance Win32_Process                   -- Lists all running processes with paths and command lines'
         )
         'Network Connections'   = @(
-            'Get-NetTCPConnection                            → Lists active TCP connections (Established + Listening)'
-            'Get-CimInstance Win32_Process                   → Maps PIDs to process names'
+            'Get-NetTCPConnection                            -- Lists active TCP connections (Established + Listening)'
+            'Get-CimInstance Win32_Process                   -- Maps PIDs to process names'
         )
         'Browser Extensions'    = @(
-            'Get-ChildItem "$env:LOCALAPPDATA\Google\Chrome\..." → Reads Chrome extension manifests'
-            'Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Edge\..." → Reads Edge extension manifests'
-            'Get-ChildItem "$env:APPDATA\Mozilla\Firefox\..."    → Reads Firefox addon JSON'
+            'Get-ChildItem "$env:LOCALAPPDATA\Google\Chrome\..." -- Reads Chrome extension manifests'
+            'Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Edge\..." -- Reads Edge extension manifests'
+            'Get-ChildItem "$env:APPDATA\Mozilla\Firefox\..."    -- Reads Firefox addon JSON'
         )
         'PowerShell History'    = @(
-            'Get-Content (Get-PSReadLineOption).HistorySavePath  → Reads PSReadLine command history file'
+            'Get-Content (Get-PSReadLineOption).HistorySavePath  -- Reads PSReadLine command history file'
         )
         'Prefetch Files'        = @(
-            'Get-ChildItem C:\Windows\Prefetch\*.pf         → Lists recently executed programs (requires admin)'
+            'Get-ChildItem C:\Windows\Prefetch\*.pf         -- Lists recently executed programs (requires admin)'
         )
         'Event Log Entries'     = @(
-            'Get-WinEvent Security (4625,4720,4732,4648,1102) → Reads security events (logon failures, etc.)'
-            'Get-WinEvent System   (7045,7034,41,1074,6008)   → Reads system events (service installs, etc.)'
+            'Get-WinEvent Security (4625,4720,4732,4648,1102) -- Reads security events (logon failures, etc.)'
+            'Get-WinEvent System   (7045,7034,41,1074,6008)   -- Reads system events (service installs, etc.)'
         )
         'DNS Cache'             = @(
-            'Get-DnsClientCache                              → Reads the DNS resolver cache'
+            'Get-DnsClientCache                              -- Reads the DNS resolver cache'
         )
         'Alternate Data Streams'= @(
-            'Get-ChildItem -Recurse Desktop,Downloads,Docs,Temp → Scans user directories'
-            'Get-Item -Stream *                               → Reads ADS metadata on each file'
+            'Get-ChildItem -Recurse Desktop,Downloads,Docs,Temp -- Scans user directories'
+            'Get-Item -Stream *                               -- Reads ADS metadata on each file'
         )
         'USB Device History'    = @(
-            'Get-ItemProperty HKLM:\SYSTEM\...\Enum\USBSTOR  → Reads USB device registry records'
+            'Get-ItemProperty HKLM:\SYSTEM\...\Enum\USBSTOR  -- Reads USB device registry records'
         )
         'Hosts File'            = @(
-            'Get-Content $env:SystemRoot\System32\drivers\etc\hosts → Reads the hosts file'
+            'Get-Content $env:SystemRoot\System32\drivers\etc\hosts -- Reads the hosts file'
         )
         'Firewall Rules'        = @(
-            'Get-NetFirewallRule                              → Lists enabled firewall rules'
-            'Get-NetFirewallPortFilter -All                   → Reads port filters (batch)'
-            'Get-NetFirewallAddressFilter -All                → Reads address filters (batch)'
-            'Get-NetFirewallApplicationFilter -All            → Reads application filters (batch)'
+            'Get-NetFirewallRule                              -- Lists enabled firewall rules'
+            'Get-NetFirewallPortFilter -All                   -- Reads port filters (batch)'
+            'Get-NetFirewallAddressFilter -All                -- Reads address filters (batch)'
+            'Get-NetFirewallApplicationFilter -All            -- Reads application filters (batch)'
         )
     }
 
