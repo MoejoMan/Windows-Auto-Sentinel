@@ -311,6 +311,14 @@ samsung*
 sony*
 panasonic*
 
+# OEM-specific service names that don't match vendor patterns above
+accsvc
+accscvc*
+udcclauncher*
+imcontroller*
+lenovovantage*
+acercarecenters*
+
 # Virtualization & development tools
 vmware*
 virtualbox*

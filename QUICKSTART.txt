@@ -1,0 +1,59 @@
+=============================================
+  WinAutoSentinel - Quick Start Guide
+=============================================
+
+  1. Double-click  run.bat
+  2. Click "Yes" on the admin prompt
+  3. Press 1 for the Web GUI (or 2 for Quick Scan)
+  4. Your browser opens → click "Begin Security Scan"
+  5. Review your results in the dashboard
+
+That's it. No install, no internet, no setup.
+
+---------------------------------------------
+  Other Options
+---------------------------------------------
+
+  Press 3  →  CLI scan + auto-open HTML report
+  Press 4  →  Dry run (preview only, nothing runs)
+  Press 5  →  Create a desktop shortcut
+  Press 6  →  Verify file integrity (SHA256 hashes)
+
+---------------------------------------------
+  FAQ
+---------------------------------------------
+
+  Q: Does this change my system?
+  A: No. Every scan is read-only (Get-* cmdlets).
+     See SECURITY.md for proof with verification commands.
+
+  Q: Does it phone home?
+  A: No. Zero network calls. Fully offline.
+     Search the code: no Invoke-WebRequest, no WebClient.
+
+  Q: Do I need to install anything?
+  A: No. Just PowerShell 5.1 (already on Windows 10/11).
+
+  Q: Is admin required?
+  A: Recommended but not required.
+     Without admin: 15 of 17 scans work.
+     With admin: Prefetch + full Event Logs available.
+
+  Q: How do I stop the GUI server?
+  A: Press Ctrl+C in the terminal window, or just close it.
+
+---------------------------------------------
+  Files
+---------------------------------------------
+
+  run.bat                         One-click launcher
+  Win_Auto_Sentinel_GUI.ps1       Web GUI (browser dashboard)
+  Win_Auto_Sentinel_Main.ps1      CLI mode (console + reports)
+  Win_Auto_Sentinel_Functions.ps1 All 17 scan functions
+  legitimate_services.txt         Service whitelist (editable)
+  SECURITY.md                     Full transparency document
+  README.md                       Detailed documentation
+
+=============================================
+  All data stays on your machine. Always.
+=============================================

@@ -70,6 +70,8 @@ function Get-ScheduledTasksSummary {
     <#
     .SYNOPSIS
         Enumerate active (Ready/Running) scheduled tasks with action details and risk hints.
+        Uses TaskPath-based trust (Microsoft system tasks) and Authenticode signature
+        verification to dramatically reduce false positives while catching real threats.
     #>
     param([int]$Limit = 0)  # 0 = unlimited
 
@@ -78,6 +80,24 @@ function Get-ScheduledTasksSummary {
         $tasks = Get-ScheduledTask -ErrorAction Stop |
             Where-Object { $_.State -eq 'Ready' -or $_.State -eq 'Running' }
 
+        # TaskPaths that are only writable by SYSTEM-level installers (TrustedInstaller / SYSTEM)
+        $trustedTaskPaths = @(
+            '\Microsoft\Windows\',
+            '\Microsoft\Office\',
+            '\Microsoft\XblGameSave\',
+            '\Microsoft\Windows Defender\',
+            '\Microsoft\Configuration Manager\',
+            '\Microsoft\VisualStudio\',
+            '\Microsoft\.NET\'
+        )
+
+        # Binaries that are commonly abused for LOLBin techniques
+        $suspiciousBins = @('powershell','pwsh','cmd','wscript','cscript','mshta',
+                            'regsvr32','certutil','bitsadmin','msiexec','psexec')
+
+        # Signature cache to avoid re-checking the same binary multiple times
+        $sigCache = @{}
+
         $results = foreach ($t in $tasks) {
             $actions = ($t.Actions | ForEach-Object {
                 if ($_.Execute) { "$($_.Execute) $($_.Arguments)" }
@@ -85,31 +105,105 @@ function Get-ScheduledTasksSummary {
 
             $author   = if ($t.Author) { $t.Author } else { '' }
             $triggers = ($t.Triggers | ForEach-Object { $_.CimClass.CimClassName -replace 'MSFT_Task', '' }) -join ', '
+            $taskPath = $t.TaskPath
 
-            # Risk heuristic
+            # ----- Tier 1: TaskPath-based trust -----
+            # Tasks under Microsoft system paths can only be created by SYSTEM-level installers.
+            # These are inherently trusted and should not generate noise.
+            $isTrustedPath = $false
+            foreach ($tp in $trustedTaskPaths) {
+                if ($taskPath -like "$tp*") { $isTrustedPath = $true; break }
+            }
+
+            if ($isTrustedPath) {
+                # Even trusted tasks get High if they phone home to URLs/UNC
+                $risk = 'Info'
+                if ($actions -match '(https?://|ftp://|\\\\[^\\])') { $risk = 'High' }
+
+                [PSCustomObject]@{
+                    Category  = 'Scheduled Tasks'
+                    Risk      = $risk
+                    TaskName  = $t.TaskName
+                    TaskPath  = $taskPath
+                    State     = [string]$t.State
+                    Author    = $author
+                    Actions   = Get-TruncatedString $actions 200
+                    Triggers  = $triggers
+                }
+                continue
+            }
+
+            # ----- Tier 2: Non-Microsoft tasks — use Authenticode + heuristics -----
             $risk = 'Info'
-            $suspicious = @('powershell', 'cmd', 'wscript', 'cscript', 'mshta', 'regsvr32',
-                            'rundll32', 'certutil', 'bitsadmin', 'msiexec')
-            # Only flag as Medium if the binary isn't in a known Windows/system location
-            $isMsTrustedAction = ($actions -like '*\windows\*' -or $actions -like '*\Microsoft\*' -or
-                                  $actions -like '*ProgramData\Microsoft\Windows Defender\*')
-            foreach ($s in $suspicious) {
-                if ($actions -match [regex]::Escape($s)) {
-                    if ($isMsTrustedAction) { if ($risk -eq 'Info') { $risk = 'Low' } }
-                    else { $risk = 'Medium' }
-                    break
+
+            # Resolve the primary executable path for signature checking
+            $exePath = $null
+            if ($t.Actions.Count -gt 0 -and $t.Actions[0].Execute) {
+                $rawExe = $t.Actions[0].Execute -replace '^"([^"]+)".*', '$1'
+                $rawExe = $rawExe.Trim()
+                # Resolve environment variables (e.g. %windir%)
+                $rawExe = [Environment]::ExpandEnvironmentVariables($rawExe)
+                if (Test-Path $rawExe -ErrorAction SilentlyContinue) { $exePath = $rawExe }
+            }
+
+            # Check Authenticode signature (cached)
+            $sigStatus = 'Unknown'
+            $sigSigner = ''
+            if ($exePath) {
+                if ($sigCache.ContainsKey($exePath)) {
+                    $sigStatus = $sigCache[$exePath].Status
+                    $sigSigner = $sigCache[$exePath].Signer
+                } else {
+                    try {
+                        $sig = Get-AuthenticodeSignature -FilePath $exePath -ErrorAction Stop
+                        $sigStatus = [string]$sig.Status
+                        if ($sig.SignerCertificate) { $sigSigner = $sig.SignerCertificate.Subject }
+                        $sigCache[$exePath] = @{ Status = $sigStatus; Signer = $sigSigner }
+                    } catch {
+                        $sigCache[$exePath] = @{ Status = 'Error'; Signer = '' }
+                    }
                 }
             }
-            if ($actions -match '(http|ftp|\\\\)') { $risk = 'High' }
-            if ([string]::IsNullOrWhiteSpace($author) -or $author -eq 'N/A') {
-                if ($risk -eq 'Info') { $risk = 'Low' }
+
+            $isSigned = ($sigStatus -eq 'Valid')
+
+            # Check for suspicious (LOLBin) binaries
+            $hasSuspiciousBin = $false
+            foreach ($s in $suspiciousBins) {
+                if ($actions -match [regex]::Escape($s)) { $hasSuspiciousBin = $true; break }
+            }
+
+            # Check for network callouts (URL/UNC paths in actions)
+            $hasNetworkCallout = ($actions -match '(https?://|ftp://|\\\\[^\\])')
+
+            # Check for suspicious directories
+            $inSuspiciousDir = $false
+            $suspiciousDirs = @("$env:TEMP", "$env:TMP", "$env:APPDATA",
+                                "$env:USERPROFILE\Downloads", "$env:PUBLIC")
+            foreach ($d in $suspiciousDirs) {
+                if ($actions -like "*$d*") { $inSuspiciousDir = $true; break }
+            }
+
+            # Risk scoring matrix
+            if ($hasNetworkCallout) {
+                $risk = 'High'
+            } elseif ($inSuspiciousDir -and -not $isSigned) {
+                $risk = 'High'
+            } elseif ($hasSuspiciousBin -and -not $isSigned) {
+                $risk = 'Medium'
+            } elseif (-not $isSigned -and [string]::IsNullOrWhiteSpace($author)) {
+                # Unsigned with no author — mildly suspicious
+                $risk = 'Low'
+            } elseif ($hasSuspiciousBin -and $isSigned) {
+                # Signed + LOLBin (e.g. legitimate tool using rundll32) — informational note
+                $risk = 'Info'
             }
 
             [PSCustomObject]@{
                 Category  = 'Scheduled Tasks'
                 Risk      = $risk
                 TaskName  = $t.TaskName
-                TaskPath  = $t.TaskPath
+                TaskPath  = $taskPath
                 State     = [string]$t.State
                 Author    = $author
                 Actions   = Get-TruncatedString $actions 200
@@ -513,11 +607,22 @@ function Get-PrefetchFilesSummary {
         $suspiciousExes = @('POWERSHELL','CMD','WSCRIPT','CSCRIPT','MSHTA','REGSVR32',
                             'RUNDLL32','CERTUTIL','BITSADMIN','PSEXEC','MIMIKATZ','PROCDUMP')
 
+        # Prefetch filenames for standard Windows system binaries — these are always present
+        # on healthy systems and should not be flagged. Only truly unusual LOLBin usage
+        # (from non-system paths) would show a different prefetch entry.
+        $systemBinariesPrefetch = @('POWERSHELL.EXE','CMD.EXE','RUNDLL32.EXE','MSIEXEC.EXE',
+                                    'REGSVR32.EXE','BITSADMIN.EXE','CERTUTIL.EXE')
+
         $results = foreach ($f in $files) {
             $exeName = ($f.BaseName -replace '-[A-F0-9]+$', '')
             $risk = 'Info'
-            foreach ($s in $suspiciousExes) {
-                if ($exeName -like "*$s*") { $risk = 'Medium'; break }
+
+            # Skip system binaries that are expected in prefetch on every Windows machine
+            if ($exeName -in $systemBinariesPrefetch) { $risk = 'Info' }
+            else {
+                foreach ($s in $suspiciousExes) {
+                    if ($exeName -like "*$s*") { $risk = 'Medium'; break }
+                }
             }
 
             [PSCustomObject]@{
@@ -792,21 +897,59 @@ function Get-FirewallRulesSummary {
     try {
         $rules = Get-NetFirewallRule -Enabled True -ErrorAction Stop
 
+        # Batch-fetch all filters once (avoids per-rule CIM queries which are extremely slow)
+        $portFilters = @{}
+        Get-NetFirewallPortFilter -All -ErrorAction SilentlyContinue | ForEach-Object {
+            $portFilters[$_.InstanceID] = $_
+        }
+        $addrFilters = @{}
+        Get-NetFirewallAddressFilter -All -ErrorAction SilentlyContinue | ForEach-Object {
+            $addrFilters[$_.InstanceID] = $_
+        }
+        $appFilters = @{}
+        Get-NetFirewallApplicationFilter -All -ErrorAction SilentlyContinue | ForEach-Object {
+            $appFilters[$_.InstanceID] = $_
+        }
+
         $results = foreach ($r in $rules) {
             $risk = 'Info'
             if ($r.Direction -eq 'Inbound' -and $r.Action -eq 'Allow') { $risk = 'Low' }
 
-            # Get port/address/app filters
-            $portFilter = Get-NetFirewallPortFilter -AssociatedNetFirewallRule $r -ErrorAction SilentlyContinue
-            $addrFilter = Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $r -ErrorAction SilentlyContinue
-            $appFilter  = Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $r -ErrorAction SilentlyContinue
+            # Trust built-in Windows firewall rules — they ship with the OS and are managed
+            # by Windows components. Identified by: Group property contains a resource string
+            # reference (starts with @) which only Microsoft-shipped rules have, OR the
+            # DisplayName matches well-known standard Windows rule patterns.
+            $isBuiltInRule = $false
+            if ($r.Group -like '@*') {
+                # Resource string reference (e.g. @FirewallAPI.dll,-28502) = OS-shipped rule
+                $isBuiltInRule = $true
+            }
+            if (-not $isBuiltInRule) {
+                $builtInPatterns = @('Core Networking*','Wi-Fi Direct*','Remote Assistance*',
+                                     'Windows Remote Management*','File and Printer Sharing*',
+                                     'Network Discovery*','mDNS*','Delivery Optimization*',
+                                     'Connected Devices Platform*','AllJoyn Router*',
+                                     'Cast to Device*','DIAL protocol server*',
+                                     'Proximity sharing*','Wireless Display*',
+                                     'BranchCache*','Hyper-V*')
+                foreach ($bp in $builtInPatterns) {
+                    if ($r.DisplayName -like $bp) { $isBuiltInRule = $true; break }
+                }
+            }
+            if ($isBuiltInRule) { $risk = 'Info' }
+
+            # Look up filters by matching InstanceID
+            $ruleId     = $r.InstanceID
+            $portFilter = $portFilters[$ruleId]
+            $addrFilter = $addrFilters[$ruleId]
+            $appFilter  = $appFilters[$ruleId]
 
             $localPort  = if ($portFilter.LocalPort)  { $portFilter.LocalPort -join ',' }  else { 'Any' }
             $remoteAddr = if ($addrFilter.RemoteAddress) { ($addrFilter.RemoteAddress | Select-Object -First 3) -join ',' } else { 'Any' }
             $appPath    = if ($appFilter.Program -and $appFilter.Program -ne 'Any') { $appFilter.Program } else { '' }
 
-            # Elevate risk for broad inbound allows
-            if ($risk -eq 'Low' -and $localPort -eq 'Any' -and $remoteAddr -eq 'Any') { $risk = 'Medium' }
+            # Elevate risk for broad inbound allows (but not built-in Windows rules)
+            if (-not $isBuiltInRule -and $risk -eq 'Low' -and $localPort -eq 'Any' -and $remoteAddr -eq 'Any') { $risk = 'Medium' }
 
             [PSCustomObject]@{
                 Category      = 'Firewall Rules'
@@ -857,7 +1000,12 @@ function Get-RunningProcessesSummary {
             "$env:windir\SysWOW64\msiexec.exe",
             "$env:windir\SysWOW64\rundll32.exe",
             "$env:ProgramFiles\WindowsApps\",
-            "$env:windir\SystemApps\"
+            "$env:windir\SystemApps\",
+            # Microsoft PowerToys (runs from AppData\Local\PowerToys — legitimately signed)
+            "$env:LOCALAPPDATA\PowerToys\",
+            # Common signed tools that run from user-profile paths
+            "$env:LOCALAPPDATA\Microsoft\",
+            "$env:LOCALAPPDATA\Programs\Microsoft VS Code\"
         )
 
         $results = foreach ($p in $procs) {

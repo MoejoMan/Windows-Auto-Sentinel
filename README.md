@@ -4,6 +4,50 @@
 
 ---
 
+## Trust & Transparency
+
+> **This tool is 100% read-only. It does not modify your system, contact any server, or collect any data.**
+
+| Guarantee | Details |
+|---|---|
+| **No network calls** | Zero use of `Invoke-WebRequest`, `WebClient`, or any HTTP client. Fully offline. |
+| **No system changes** | Every scan uses `Get-*` cmdlets only. No registry writes, no service changes, no file modifications. |
+| **No data collection** | Nothing leaves your machine. The web GUI runs on `localhost` only. |
+| **No compiled binaries** | 100% plain-text PowerShell. Read every line yourself. |
+| **No external dependencies** | No npm, pip, NuGet, or CDN. Self-contained. |
+| **Dry-run mode** | Run `.\Win_Auto_Sentinel_Main.ps1 -WhatIf` to see exactly what each scan will read — without executing anything. |
+
+For a full security audit with verification commands, see **[SECURITY.md](SECURITY.md)**.
+
+---
+
+## Quick Start
+
+**Option 1 — Double-click** (easiest):
+```
+run.bat
+```
+Double-click `run.bat` — it checks prerequisites, requests admin elevation, then gives you a 6-option menu:
+1. **Web GUI** — Full interactive browser dashboard
+2. **Quick Scan** — GUI with the 5 most critical categories pre-selected
+3. **CLI + Report** — Console output + HTML report (auto-opens in browser)
+4. **Dry Run** — Preview what will be scanned, nothing executed
+5. **Desktop Shortcut** — Create a shortcut on your Desktop
+6. **Verify Integrity** — Show SHA256 hashes to check for tampering
+
+**Option 2 — PowerShell**:
+```powershell
+.\Win_Auto_Sentinel_GUI.ps1              # Web GUI (recommended)
+.\Win_Auto_Sentinel_GUI.ps1 -QuickScan   # Web GUI with top-5 pre-selected
+.\Win_Auto_Sentinel_Main.ps1             # CLI mode
+.\Win_Auto_Sentinel_Main.ps1 -ExportHTML -AutoOpen  # Scan + auto-open report
+.\Win_Auto_Sentinel_Main.ps1 -WhatIf     # Dry run — see what will be scanned
+```
+
+**New to this?** Read [QUICKSTART.txt](QUICKSTART.txt) — a plain-text, 5-step guide.
+
+---
+
 ## Purpose
 
 WinAutoSentinel is a free, portable, offline PowerShell tool that helps you review and understand what's set to auto-run or persist on your Windows machine. It scans 17 categories of security-relevant artefacts, assigns risk levels (0-100 security score), and presents findings through either a web-based GUI or CLI.
@@ -46,11 +90,25 @@ WinAutoSentinel is a free, portable, offline PowerShell tool that helps you revi
 
 ## Usage
 
-### Web GUI (Recommended)
+### One-Click Launcher (Recommended for first-timers)
+```
+run.bat
+```
+Double-click `run.bat` — it auto-checks prerequisites (PowerShell version, required files), requests admin elevation, then presents a menu:
+1. **Web GUI** — Interactive browser dashboard (default)
+2. **Quick Scan** — GUI with top-5 critical categories pre-selected, auto-starts
+3. **CLI Scan** — Console output + HTML report that auto-opens in your browser
+4. **Dry Run** — Shows what each scan reads, then exits (nothing executed)
+5. **Desktop Shortcut** — Creates a one-click shortcut on your Desktop
+6. **Verify Integrity** — Displays SHA256 hashes of all project files
+
+### Web GUI
 ```powershell
 .\Win_Auto_Sentinel_GUI.ps1
 ```
 This opens your browser to a local dashboard where you can:
+- See a **welcome/onboarding banner** explaining what the tool does (dismissible, only shows once)
+- Choose from **scan presets**: Quick Scan (5 categories), Full Scan (all 17), Persistence Only, Network Focus
 - See system information at a glance
 - Toggle individual scan categories on/off
 - Confirm before scanning starts
@@ -99,6 +157,12 @@ This opens your browser to a local dashboard where you can:
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -OutputDir "C:\Reports"
 ```
 
+### Dry-Run Mode — See What Will Be Scanned
+```powershell
+.\Win_Auto_Sentinel_Main.ps1 -WhatIf
+```
+Lists every `Get-*` cmdlet and path each scan will access, then exits without running anything. Use this to verify the tool's behaviour before your first real scan.
+
 ### Run Elevated for Full Coverage
 ```powershell
 # Right-click PowerShell → Run as Administrator, then:
@@ -125,6 +189,9 @@ The interactive HTML report (CLI mode) includes:
 
 The web-based GUI (`Win_Auto_Sentinel_GUI.ps1`) provides an enhanced experience:
 - **3-view flow** — Configuration → Scanning Progress → Interactive Dashboard
+- **Scan presets** — Quick Scan, Full Scan, Persistence Only, Network Focus with one click
+- **Onboarding banner** — First-time visitors see a guide explaining what the tool does and doesn't do
+- **Scan-complete notification** — Audio chime, notification bar, and title bar update when done
 - **Scan configuration** — Toggle switches per category, Select All/Deselect All, admin-required badges
 - **Confirmation modal** — Review selection and estimated time before scanning
 - **Live progress** — Animated progress bar, per-category status indicators, live finding counts
@@ -167,10 +234,13 @@ The file `legitimate_services.txt` defines patterns for known-good services. Ser
 ## Architecture
 
 ```
+run.bat                         ← One-click launcher (prereq checks + 6-option menu)
+QUICKSTART.txt                  ← Plain-text 5-step quick start guide
 Win_Auto_Sentinel_GUI.ps1       ← Web GUI launcher (local HTTP server + embedded SPA)
-Win_Auto_Sentinel_Main.ps1      ← CLI entry point, orchestration, console output, export
+Win_Auto_Sentinel_Main.ps1      ← CLI entry point, orchestration, console output, export, -WhatIf mode
 Win_Auto_Sentinel_Functions.ps1 ← All 17 scan functions + HTML report generator
 legitimate_services.txt         ← Service whitelist (editable)
+SECURITY.md                     ← Full transparency & security audit document
 examples/                       ← Reference forensic collection scripts
 ```
 

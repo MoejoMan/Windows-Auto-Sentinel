@@ -9,7 +9,8 @@
 
 param(
     [int]$Port = 8765,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$QuickScan
 )
 
 $ErrorActionPreference = 'Continue'
@@ -78,6 +79,7 @@ $HtmlContent = @'
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WinAutoSentinel</title>
+<meta name="quick-scan" content="__QUICKSCAN__">
 <style>
 :root {
     --bg: #0a0e1a; --surface: #141929; --card: #1c2237; --card2: #252d47;
@@ -244,6 +246,27 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 /* Footer */
 .footer{text-align:center;padding:30px;color:var(--muted);font-size:.82em}
 
+/* Onboarding banner */
+.onboard{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid var(--accent);border-radius:14px;padding:24px 28px;margin-bottom:20px;position:relative}
+.onboard h3{color:var(--accent2);font-size:1.1em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.onboard p{color:var(--muted);font-size:.9em;line-height:1.7}
+.onboard ul{color:var(--muted);font-size:.87em;margin:8px 0 0 20px;line-height:1.8}
+.onboard ul li strong{color:var(--text)}
+.onboard .dismiss{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2em;padding:4px}
+.onboard .dismiss:hover{color:var(--text)}
+
+/* Preset buttons */
+.presets{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.preset-btn{padding:10px 20px;border:2px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;cursor:pointer;font-size:.9em;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:8px}
+.preset-btn:hover{border-color:var(--accent);background:var(--card2)}
+.preset-btn.active{border-color:var(--accent);background:rgba(59,130,246,.1)}
+.preset-btn .preset-desc{font-size:.78em;font-weight:400;color:var(--muted)}
+
+/* Scan complete notify */
+.notify-bar{position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,var(--success),#059669);color:#fff;text-align:center;padding:14px 20px;font-weight:700;font-size:1em;z-index:200;transform:translateY(-100%);transition:transform .4s ease;display:flex;align-items:center;justify-content:center;gap:10px}
+.notify-bar.show{transform:translateY(0)}
+.notify-bar .dismiss-notify{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:.85em}
+
 /* Print */
 @media print{
     body{background:#fff;color:#000}
@@ -265,6 +288,20 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
         <div class="sub">Windows Autostart &amp; Persistence Security Review</div>
     </div>
 
+    <!-- Onboarding banner (dismissible) -->
+    <div class="onboard" id="onboardBanner">
+        <button class="dismiss" onclick="dismissOnboard()" title="Dismiss">&times;</button>
+        <h3>&#x1f44b; Welcome to WinAutoSentinel</h3>
+        <p>This tool scans your Windows system for autostart entries, persistence mechanisms, and security misconfigurations. Here's what you need to know:</p>
+        <ul>
+            <li><strong>100% Read-Only</strong> &mdash; Nothing is modified, deleted, or sent anywhere</li>
+            <li><strong>Fully Offline</strong> &mdash; No internet connection needed or used</li>
+            <li><strong>Your Data Stays Here</strong> &mdash; All results are displayed locally in this browser tab</li>
+            <li><strong>Admin Recommended</strong> &mdash; Running elevated gives access to Prefetch &amp; full Event Logs</li>
+        </ul>
+        <p style="margin-top:10px;color:var(--accent2)">Choose a preset below or customise which categories to scan, then click <strong>Begin Security Scan</strong>.</p>
+    </div>
+
     <div class="card">
         <h3>System Information</h3>
         <div class="sys-grid" id="sysInfo">
@@ -274,6 +311,24 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
     <div class="card">
         <h3>Scan Categories</h3>
+        <div class="presets">
+            <button class="preset-btn" onclick="applyPreset('quick')" id="presetQuick">
+                &#x26a1; Quick Scan
+                <span class="preset-desc">(5 critical categories)</span>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('full')" id="presetFull">
+                &#x1f50d; Full Scan
+                <span class="preset-desc">(all 17 categories)</span>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('persistence')" id="presetPersist">
+                &#x1f512; Persistence Only
+                <span class="preset-desc">(autoruns &amp; persistence)</span>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('network')" id="presetNet">
+                &#x1f310; Network Focus
+                <span class="preset-desc">(connections, DNS, firewall)</span>
+            </button>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
             <button class="btn btn-sm btn-secondary" onclick="toggleAllCategories(true)">Select All</button>
             <button class="btn btn-sm btn-secondary" onclick="toggleAllCategories(false)">Deselect All</button>
@@ -373,7 +428,88 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
 </div><!-- /container -->
 
+<!-- Scan-complete notification bar -->
+<div class="notify-bar" id="notifyBar">
+    <span>&#x2705; Scan complete! Scroll down to review your findings.</span>
+    <button class="dismiss-notify" onclick="dismissNotify()">Dismiss</button>
+</div>
+
 <script>
+// ============================================================================
+// PRESETS
+// ============================================================================
+const presets = {
+    quick: ['scheduled-tasks','registry-run','wmi-persistence','services','defender'],
+    full: null, // means select all
+    persistence: ['scheduled-tasks','registry-run','startup-folders','wmi-persistence','services'],
+    network: ['network','dns-cache','firewall','hosts','browser-ext']
+};
+
+function applyPreset(name) {
+    // Highlight active preset button
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('preset' + name.charAt(0).toUpperCase() + name.slice(1));
+    if (btn) btn.classList.add('active');
+
+    const ids = presets[name];
+    if (ids === null) {
+        toggleAllCategories(true);
+    } else {
+        document.querySelectorAll('#catList input[type="checkbox"]').forEach(cb => {
+            if (!cb.disabled) cb.checked = ids.includes(cb.dataset.catId);
+        });
+    }
+}
+
+// ============================================================================
+// ONBOARDING
+// ============================================================================
+function dismissOnboard() {
+    const banner = document.getElementById('onboardBanner');
+    banner.style.transition = 'all .3s ease';
+    banner.style.opacity = '0';
+    banner.style.maxHeight = '0';
+    banner.style.padding = '0 28px';
+    banner.style.marginBottom = '0';
+    banner.style.overflow = 'hidden';
+    setTimeout(() => banner.remove(), 300);
+    try { localStorage.setItem('was_onboarded','1'); } catch(e) {}
+}
+
+function checkOnboard() {
+    try {
+        if (localStorage.getItem('was_onboarded') === '1') {
+            const b = document.getElementById('onboardBanner');
+            if (b) b.remove();
+        }
+    } catch(e) {}
+}
+
+// ============================================================================
+// SCAN COMPLETE NOTIFICATION
+// ============================================================================
+function showNotify() {
+    const bar = document.getElementById('notifyBar');
+    bar.classList.add('show');
+    // Play a subtle system beep via AudioContext
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880; gain.gain.value = 0.1;
+        osc.start(); osc.stop(ctx.currentTime + 0.15);
+        setTimeout(() => { osc.frequency.value = 1100; }, 100);
+    } catch(e) {}
+    // Update page title
+    document.title = '✅ Scan Complete — WinAutoSentinel';
+    setTimeout(() => dismissNotify(), 8000);
+}
+function dismissNotify() {
+    document.getElementById('notifyBar').classList.remove('show');
+    document.title = 'WinAutoSentinel';
+}
+
 // ============================================================================
 // APP STATE
 // ============================================================================
@@ -405,6 +541,7 @@ const categoryTips = {
 // INITIALISATION
 // ============================================================================
 async function init() {
+    checkOnboard();
     try {
         const res = await fetch('/api/info');
         const data = await res.json();
@@ -412,6 +549,14 @@ async function init() {
         categories = data.categories;
         renderSystemInfo();
         renderCategories();
+
+        // Check if QuickScan mode was requested via server flag
+        const qsMeta = document.querySelector('meta[name="quick-scan"]');
+        if (qsMeta && qsMeta.content === 'true') {
+            applyPreset('quick');
+            // Auto-start after a brief delay so user sees what's happening
+            setTimeout(() => { showConfirmModal(); }, 600);
+        }
     } catch(e) {
         document.getElementById('sysInfo').innerHTML = '<div class="sys-item"><div class="label">Error</div><div class="value">Could not connect to server</div></div>';
     }
@@ -539,6 +684,7 @@ async function pollStatus() {
         if (data.status === 'complete') {
             clearInterval(pollTimer);
             scanResults = data.results;
+            showNotify();
             setTimeout(() => renderDashboard(), 800);
         } else if (data.status === 'error') {
             clearInterval(pollTimer);
@@ -1006,6 +1152,13 @@ Write-Host "   URL  : $url" -ForegroundColor White
 Write-Host "   Stop : Press Ctrl+C" -ForegroundColor Gray
 Write-Host '  ============================================================' -ForegroundColor Cyan
 Write-Host ''
+
+# Inject Quick Scan flag into HTML
+if ($QuickScan) {
+    $HtmlContent = $HtmlContent -replace '__QUICKSCAN__', 'true'
+} else {
+    $HtmlContent = $HtmlContent -replace '__QUICKSCAN__', 'false'
+}
 
 # Open browser
 if (-not $NoBrowser) {

@@ -5,6 +5,8 @@
     Author  : WinAutoSentinel Contributors
     License : MIT
     Usage   : .\Win_Auto_Sentinel_Main.ps1 [-ExportHTML] [-ExportCSV] [-ExportJSON] [-OutputDir <path>]
+              .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -AutoOpen    (scan + open report in browser)
+              .\Win_Auto_Sentinel_Main.ps1 -WhatIf   (dry-run: shows what each scan reads, then exits)
               Run elevated (as Administrator) for full results.
 #>
 
@@ -15,7 +17,10 @@ param(
     [string]$OutputDir = $PSScriptRoot,
     [string]$HTMLPath   = '',
     [string]$CSVPath    = '',
-    [string]$JSONPath   = ''
+    [string]$JSONPath   = '',
+    [Alias('DryRun')]
+    [switch]$WhatIf,
+    [switch]$AutoOpen
 )
 
 # ============================================================================
@@ -45,6 +50,102 @@ if ($isAdmin) {
 }
 Write-Host '  ============================================================' -ForegroundColor Cyan
 Write-Host ''
+
+# ============================================================================
+# WHATIF / DRY-RUN MODE
+# ============================================================================
+if ($WhatIf) {
+    Write-Host '  ============================================================' -ForegroundColor Magenta
+    Write-Host '   DRY-RUN MODE — No scans will be executed.'                   -ForegroundColor Magenta
+    Write-Host '   Below is exactly what each scan reads. Nothing is modified.' -ForegroundColor Magenta
+    Write-Host '  ============================================================' -ForegroundColor Magenta
+    Write-Host ''
+
+    $scanDetails = [ordered]@{
+        'Scheduled Tasks'       = @(
+            'Get-ScheduledTask                              → Lists active task definitions (name, triggers, actions)'
+            'Get-AuthenticodeSignature                      → Checks code signatures on task binaries'
+        )
+        'Registry Run Keys'     = @(
+            'Get-ItemProperty HKLM:\...\Run                 → Reads HKLM Run, RunOnce, WOW6432Node keys'
+            'Get-ItemProperty HKCU:\...\Run                 → Reads HKCU Run, RunOnce, WOW6432Node keys'
+        )
+        'Startup Folders'       = @(
+            'Get-ChildItem "$env:APPDATA\...\Startup"       → Lists per-user startup folder contents'
+            'Get-ChildItem "$env:PROGRAMDATA\...\Startup"   → Lists all-users startup folder contents'
+        )
+        'WMI Persistence'       = @(
+            'Get-CimInstance root\subscription               → Reads WMI event filters, consumers, and bindings'
+        )
+        'Unusual Services'      = @(
+            'Get-CimInstance Win32_Service                   → Lists running auto-start services'
+            'Get-Content legitimate_services.txt             → Loads whitelist patterns'
+            'Get-AuthenticodeSignature                       → Checks code signatures on service binaries'
+        )
+        'Defender Exclusions'   = @(
+            'Get-MpPreference                                → Reads Defender exclusion lists (paths, processes, extensions)'
+        )
+        'Running Processes'     = @(
+            'Get-CimInstance Win32_Process                   → Lists all running processes with paths and command lines'
+        )
+        'Network Connections'   = @(
+            'Get-NetTCPConnection                            → Lists active TCP connections (Established + Listening)'
+            'Get-CimInstance Win32_Process                   → Maps PIDs to process names'
+        )
+        'Browser Extensions'    = @(
+            'Get-ChildItem "$env:LOCALAPPDATA\Google\Chrome\..." → Reads Chrome extension manifests'
+            'Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Edge\..." → Reads Edge extension manifests'
+            'Get-ChildItem "$env:APPDATA\Mozilla\Firefox\..."    → Reads Firefox addon JSON'
+        )
+        'PowerShell History'    = @(
+            'Get-Content (Get-PSReadLineOption).HistorySavePath  → Reads PSReadLine command history file'
+        )
+        'Prefetch Files'        = @(
+            'Get-ChildItem C:\Windows\Prefetch\*.pf         → Lists recently executed programs (requires admin)'
+        )
+        'Event Log Entries'     = @(
+            'Get-WinEvent Security (4625,4720,4732,4648,1102) → Reads security events (logon failures, etc.)'
+            'Get-WinEvent System   (7045,7034,41,1074,6008)   → Reads system events (service installs, etc.)'
+        )
+        'DNS Cache'             = @(
+            'Get-DnsClientCache                              → Reads the DNS resolver cache'
+        )
+        'Alternate Data Streams'= @(
+            'Get-ChildItem -Recurse Desktop,Downloads,Docs,Temp → Scans user directories'
+            'Get-Item -Stream *                               → Reads ADS metadata on each file'
+        )
+        'USB Device History'    = @(
+            'Get-ItemProperty HKLM:\SYSTEM\...\Enum\USBSTOR  → Reads USB device registry records'
+        )
+        'Hosts File'            = @(
+            'Get-Content $env:SystemRoot\System32\drivers\etc\hosts → Reads the hosts file'
+        )
+        'Firewall Rules'        = @(
+            'Get-NetFirewallRule                              → Lists enabled firewall rules'
+            'Get-NetFirewallPortFilter -All                   → Reads port filters (batch)'
+            'Get-NetFirewallAddressFilter -All                → Reads address filters (batch)'
+            'Get-NetFirewallApplicationFilter -All            → Reads application filters (batch)'
+        )
+    }
+
+    foreach ($scan in $scanDetails.Keys) {
+        Write-Host "  === $scan ===" -ForegroundColor Yellow
+        foreach ($detail in $scanDetails[$scan]) {
+            Write-Host "      $detail" -ForegroundColor Gray
+        }
+        Write-Host ''
+    }
+
+    Write-Host '  ============================================================' -ForegroundColor Magenta
+    Write-Host '   SUMMARY: All operations above are READ-ONLY (Get-* cmdlets).' -ForegroundColor Magenta
+    Write-Host '   No files, registry keys, services, or settings are modified.' -ForegroundColor Magenta
+    Write-Host '   Reports are saved only if you pass -ExportHTML/-ExportCSV/-ExportJSON.' -ForegroundColor Magenta
+    Write-Host '  ============================================================' -ForegroundColor Magenta
+    Write-Host ''
+    Write-Host '   Remove -WhatIf to run the actual scan.' -ForegroundColor Cyan
+    Write-Host ''
+    return
+}
 
 # ============================================================================
 # RUN ALL SCANS
@@ -155,6 +256,12 @@ $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 if ($ExportHTML) {
     $htmlFile = if ($HTMLPath) { $HTMLPath } else { Join-Path $OutputDir "WinAutoSentinel_Report_$timestamp.html" }
     New-HTMLReport -Results $results -OutputPath $htmlFile
+
+    # Auto-open the report in the default browser
+    if ($AutoOpen -and (Test-Path $htmlFile)) {
+        Write-Host "  [*] Opening report in browser..." -ForegroundColor DarkGray
+        Start-Process $htmlFile
+    }
 }
 
 # CSV Export
