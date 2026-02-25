@@ -1,6 +1,15 @@
 # WinAutoSentinel
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://docs.microsoft.com/en-us/powershell/)
+[![Windows 10/11](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6.svg)](https://www.microsoft.com/windows)
+[![No Dependencies](https://img.shields.io/badge/Dependencies-None-green.svg)](#trust--transparency)
+
 **A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard — all in pure PowerShell with zero external dependencies.**
+
+<!-- Screenshots: replace these paths with actual screenshots after your first release -->
+<!-- ![Dashboard Screenshot](screenshots/dashboard.png) -->
+<!-- ![Scan Config Screenshot](screenshots/config.png) -->
 
 ---
 
@@ -68,11 +77,11 @@ WinAutoSentinel is a free, portable, offline PowerShell tool that helps you revi
 
 | Category | What it checks | Requires Admin |
 |---|---|---|
-| **Scheduled Tasks** | Active tasks with action/trigger details and author info | No |
+| **Scheduled Tasks** | Active tasks with Authenticode signature verification and TaskPath-based trust | No |
 | **Registry Run Keys** | HKLM/HKCU Run, RunOnce + WOW6432Node (32-bit on 64-bit) | No |
 | **Startup Folders** | Per-user and all-users startup directories | No |
 | **WMI Persistence** | Event filters, consumers (CommandLine + ActiveScript), bindings | No |
-| **Unusual Services** | Running auto-start services not whitelisted, unsigned, or in suspicious paths | No |
+| **Unusual Services** | Running auto-start services not whitelisted, unsigned, or in suspicious paths (Authenticode verified) | No |
 | **Defender Exclusions** | Path, process, and extension exclusions in Windows Defender | No |
 | **Running Processes** | Processes from suspicious locations or with suspicious names | No |
 | **Network Connections** | Established/Listening TCP connections mapped to processes | No |
@@ -211,7 +220,7 @@ The web-based GUI (`Win_Auto_Sentinel_GUI.ps1`) provides an enhanced experience:
 |---|---|---|
 | **Critical** | Very likely malicious or extremely dangerous | WMI CommandLine consumer, Defender exclusion for `powershell.exe` |
 | **High** | Strong indicator of compromise or misconfiguration | Unsigned service in Temp folder, hosts file redirecting google.com |
-| **Medium** | Warrants investigation | Task running `powershell.exe`, failed logon events |
+| **Medium** | Warrants investigation | Unsigned task running PowerShell from non-Microsoft path, failed logon events |
 | **Low** | Mildly unusual but often benign | RunOnce entry, unsigned startup shortcut |
 | **Info** | Informational, no action needed | Normal USB device, DNS cache entry |
 
@@ -241,6 +250,7 @@ Win_Auto_Sentinel_Main.ps1      ← CLI entry point, orchestration, console outp
 Win_Auto_Sentinel_Functions.ps1 ← All 17 scan functions + HTML report generator
 legitimate_services.txt         ← Service whitelist (editable)
 SECURITY.md                     ← Full transparency & security audit document
+LICENSE                         ← MIT License
 examples/                       ← Reference forensic collection scripts
 ```
 
@@ -251,6 +261,8 @@ examples/                       ← Reference forensic collection scripts
 - `Get-CimInstance` replaces deprecated `Get-WmiObject`
 - `Get-WinEvent` replaces deprecated `Get-EventLog`
 - Signature checks use actual `Get-AuthenticodeSignature`, not guesswork
+- Scheduled tasks use TaskPath-based trust (Microsoft system paths) + Authenticode binary verification
+- Signature results are cached per-binary to avoid redundant crypto operations
 
 **GUI architecture:**
 - PowerShell `HttpListener` serves an embedded HTML5/CSS3/JS single-page application on localhost
@@ -271,7 +283,7 @@ examples/                       ← Reference forensic collection scripts
 
 ## License
 
-MIT License
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 

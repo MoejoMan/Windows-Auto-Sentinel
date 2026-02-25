@@ -100,12 +100,15 @@ echo  +--------------------------------------------------------------+
 echo  ^|  Starting WinAutoSentinel Web GUI...                        ^|
 echo  ^|                                                              ^|
 echo  ^|  Your browser will open automatically.                      ^|
-echo  ^|  Press Ctrl+C in this window to stop the server.            ^|
+echo  ^|  When you're done, click the red "Close WinAutoSentinel"    ^|
+echo  ^|  button at the bottom of the page.                          ^|
 echo  +--------------------------------------------------------------+
 echo.
 powershell.exe -ExecutionPolicy Bypass -File "Win_Auto_Sentinel_GUI.ps1"
 echo.
-echo  Server stopped.
+echo  +--------------------------------------------------------------+
+echo  ^|  WinAutoSentinel has stopped.                               ^|
+echo  +--------------------------------------------------------------+
 echo.
 set /p "again=  Return to menu? [Y/n]: "
 if /i "!again!"=="n" exit /b
@@ -124,11 +127,14 @@ echo  ^|  Pre-selects: Scheduled Tasks, Registry Run Keys, WMI      ^|
 echo  ^|  Persistence, Unusual Services, Defender Exclusions         ^|
 echo  ^|                                                              ^|
 echo  ^|  Your browser will open automatically.                      ^|
+echo  ^|  When done, click "Close WinAutoSentinel" in the browser.   ^|
 echo  +--------------------------------------------------------------+
 echo.
 powershell.exe -ExecutionPolicy Bypass -File "Win_Auto_Sentinel_GUI.ps1" -QuickScan
 echo.
-echo  Server stopped.
+echo  +--------------------------------------------------------------+
+echo  ^|  WinAutoSentinel has stopped.                               ^|
+echo  +--------------------------------------------------------------+
 echo.
 set /p "again=  Return to menu? [Y/n]: "
 if /i "!again!"=="n" exit /b

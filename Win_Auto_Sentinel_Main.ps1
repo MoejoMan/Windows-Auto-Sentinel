@@ -310,3 +310,5 @@ Write-Host '   Use -ExportCSV / -ExportJSON for machine-readable output.' -Foreg
 Write-Host '   Run as Administrator for full scan coverage.' -ForegroundColor Gray
 Write-Host '  ============================================================' -ForegroundColor Cyan
 Write-Host ''
+Write-Host '  All done! You can close this window.' -ForegroundColor Green
+Write-Host ''

@@ -48,6 +48,7 @@ $Global:ScanState = [hashtable]::Synchronized(@{
     TotalCategories    = 0
     CompletedCategories= 0
     CompletedList      = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new())
+    ShutdownRequested  = $false
     FindingCounts      = @{ Critical=0; High=0; Medium=0; Low=0; Info=0 }
     ResultsJson        = ''
     StartTime          = $null
@@ -411,6 +412,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
     <div class="footer">
         <p>WinAutoSentinel &mdash; All data collected and displayed locally. Nothing leaves your machine.</p>
+        <button class="btn btn-sm" style="margin-top:10px;background:#d63031;color:#fff;border:none;padding:8px 24px;border-radius:6px;cursor:pointer;font-size:0.95em" onclick="shutdownServer()">&#x23FB; Close WinAutoSentinel</button>
     </div>
 </div>
 
@@ -508,6 +510,12 @@ function showNotify() {
 function dismissNotify() {
     document.getElementById('notifyBar').classList.remove('show');
     document.title = 'WinAutoSentinel';
+}
+function shutdownServer() {
+    if (!confirm('Close WinAutoSentinel? This will stop the server and close this page.')) return;
+    fetch('/api/shutdown', {method:'POST'}).catch(()=>{});
+    document.title = 'WinAutoSentinel — Stopped';
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#ccc;font-family:sans-serif;flex-direction:column"><h1>&#x1f6e1; WinAutoSentinel</h1><p style="font-size:1.2em;margin-top:10px">Server stopped. You can close this tab.</p></div>';
 }
 
 // ============================================================================
@@ -1149,7 +1157,7 @@ Write-Host '  ============================================================' -For
 Write-Host '   WinAutoSentinel GUI Server' -ForegroundColor Cyan
 Write-Host '  ============================================================' -ForegroundColor Cyan
 Write-Host "   URL  : $url" -ForegroundColor White
-Write-Host "   Stop : Press Ctrl+C" -ForegroundColor Gray
+Write-Host "   Stop : Press Ctrl+C or use the Close button in the browser" -ForegroundColor Gray
 Write-Host '  ============================================================' -ForegroundColor Cyan
 Write-Host ''
 
@@ -1180,6 +1188,11 @@ try {
                 '^GET /api/info$'  { Handle-InfoRequest $response; break }
                 '^POST /api/scan$' { Handle-ScanRequest $request $response; break }
                 '^GET /api/status$'{ Handle-StatusRequest $response; break }
+                '^POST /api/shutdown$' {
+                    Send-Response $response '{"status":"shutting down"}' 'application/json'
+                    $Global:ScanState.ShutdownRequested = $true
+                    break
+                }
                 default            { Send-Response $response '{"error":"Not Found"}' 'application/json' 404 }
             }
         } catch {
@@ -1188,6 +1201,13 @@ try {
 
         Write-Host "  $method $path" -ForegroundColor DarkGray -NoNewline
         Write-Host " [$($response.StatusCode)]" -ForegroundColor $(if ($response.StatusCode -eq 200) { 'DarkGreen' } else { 'DarkYellow' })
+
+        # Check for graceful shutdown request
+        if ($Global:ScanState.ShutdownRequested) {
+            Write-Host ''
+            Write-Host '  Shutdown requested from browser. Stopping server...' -ForegroundColor Cyan
+            break
+        }
     }
 } catch {
     # Ctrl+C or listener error
