@@ -7,6 +7,130 @@
 Add-Type -AssemblyName System.Web -ErrorAction SilentlyContinue
 
 # ============================================================================
+# SHARED CONSTANTS  (single source of truth — used by all scan functions)
+# ============================================================================
+
+# LOLBin / living-off-the-land binaries (lowercase for case-insensitive matching)
+$script:SuspiciousBinaries = @(
+    'powershell','pwsh','cmd','wscript','cscript','mshta',
+    'regsvr32','rundll32','certutil','bitsadmin','msiexec',
+    'psexec','mimikatz','procdump','nc','ncat'
+)
+
+# Same list in uppercase for prefetch-file matching
+$script:SuspiciousBinariesUpper = $script:SuspiciousBinaries | ForEach-Object { $_.ToUpper() }
+
+# Directories that should never contain persistent/autostart binaries
+$script:SuspiciousDirectories = @(
+    "$env:TEMP", "$env:TMP", "$env:APPDATA",
+    "$env:APPDATA\Local\Temp",
+    "$env:USERPROFILE\Desktop",
+    "$env:USERPROFILE\Downloads",
+    "$env:PUBLIC"
+)
+
+# Trusted install / system directories
+$script:TrustedDirectories = @(
+    "$env:ProgramFiles",
+    "${env:ProgramFiles(x86)}",
+    "$env:windir\System32",
+    "$env:windir\SysWOW64",
+    "$env:ProgramData\Microsoft\",
+    "$env:ProgramFiles\Common Files\",
+    "$env:ProgramFiles\WindowsApps\"
+)
+
+# Trusted process paths (more specific than TrustedDirectories — includes user-profile apps
+# that are legitimately signed, like VS Code and PowerToys)
+$script:TrustedProcessPaths = @(
+    "$env:windir\System32\WindowsPowerShell\",
+    "$env:windir\System32\cmd.exe",
+    "$env:windir\System32\msiexec.exe",
+    "$env:windir\System32\rundll32.exe",
+    "$env:windir\SysWOW64\msiexec.exe",
+    "$env:windir\SysWOW64\rundll32.exe",
+    "$env:ProgramFiles\WindowsApps\",
+    "$env:windir\SystemApps\",
+    "$env:LOCALAPPDATA\PowerToys\",
+    "$env:LOCALAPPDATA\Microsoft\",
+    "$env:LOCALAPPDATA\Programs\Microsoft VS Code\"
+)
+
+# Trusted scheduled-task paths (only writable by SYSTEM / TrustedInstaller)
+$script:TrustedTaskPaths = @(
+    '\Microsoft\Windows\',
+    '\Microsoft\Office\',
+    '\Microsoft\XblGameSave\',
+    '\Microsoft\Windows Defender\',
+    '\Microsoft\Configuration Manager\',
+    '\Microsoft\VisualStudio\',
+    '\Microsoft\.NET\'
+)
+
+# Keywords that strongly indicate malicious intent (service display-name check)
+$script:MaliciousKeywords = @(
+    'hack','crack','keygen','trojan','virus','malware','backdoor',
+    'rootkit','exploit','payload','keylogger','spy','inject'
+)
+
+# PowerShell history patterns flagged as suspicious
+$script:SuspiciousHistoryPatterns = @(
+    'Invoke-Expression', 'iex\s', 'IEX\s', 'DownloadString', 'DownloadFile',
+    'Net\.WebClient', 'Invoke-WebRequest', 'Start-BitsTransfer',
+    'New-Object\s+IO\.MemoryStream', 'FromBase64String', '-enc\s',
+    '-EncodedCommand', 'Set-MpPreference', 'Add-MpPreference',
+    'reg\s+add', 'schtasks\s+/create', 'sc\.exe\s+create'
+)
+
+# Prefetch filenames for standard Windows system binaries — always present on healthy systems
+$script:SystemBinariesPrefetch = @(
+    'POWERSHELL.EXE','CMD.EXE','RUNDLL32.EXE','MSIEXEC.EXE',
+    'REGSVR32.EXE','BITSADMIN.EXE','CERTUTIL.EXE'
+)
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+# Module-level log state (callers set $script:LogPath before import or via Enable-WASLog)
+$script:LogPath = $null
+
+function Enable-WASLog {
+    <#
+    .SYNOPSIS
+        Enable file logging.  Call once before scans to redirect all Write-WASLog
+        output to a timestamped log file alongside the script.
+    #>
+    param([string]$Path)
+    if (-not $Path) {
+        $ts = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $Path = Join-Path $PSScriptRoot "WinAutoSentinel_$ts.log"
+    }
+    $script:LogPath = $Path
+    Write-WASLog "Log started: $Path"
+}
+
+function Write-WASLog {
+    <#
+    .SYNOPSIS
+        Write a timestamped line to both the console (verbose) and the log file
+        (if logging has been enabled via Enable-WASLog).
+    #>
+    param(
+        [string]$Message,
+        [ValidateSet('INFO','WARN','ERROR')]
+        [string]$Level = 'INFO'
+    )
+    $ts   = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $line = "[$ts] [$Level] $Message"
+    if ($script:LogPath) {
+        $line | Out-File -FilePath $script:LogPath -Append -Encoding UTF8
+    }
+    # Also emit to verbose stream so -Verbose surfaces it
+    Write-Verbose $line
+}
+
+# ============================================================================
 # HELPER UTILITIES
 # ============================================================================
 
@@ -75,25 +199,11 @@ function Get-ScheduledTasksSummary {
     #>
     param([int]$Limit = 0)  # 0 = unlimited
 
+    Write-WASLog 'Scanning scheduled tasks'
     Write-Host '  [*] Scanning scheduled tasks...' -ForegroundColor DarkGray
     try {
         $tasks = Get-ScheduledTask -ErrorAction Stop |
             Where-Object { $_.State -eq 'Ready' -or $_.State -eq 'Running' }
-
-        # TaskPaths that are only writable by SYSTEM-level installers (TrustedInstaller / SYSTEM)
-        $trustedTaskPaths = @(
-            '\Microsoft\Windows\',
-            '\Microsoft\Office\',
-            '\Microsoft\XblGameSave\',
-            '\Microsoft\Windows Defender\',
-            '\Microsoft\Configuration Manager\',
-            '\Microsoft\VisualStudio\',
-            '\Microsoft\.NET\'
-        )
-
-        # Binaries that are commonly abused for LOLBin techniques
-        $suspiciousBins = @('powershell','pwsh','cmd','wscript','cscript','mshta',
-                            'regsvr32','certutil','bitsadmin','msiexec','psexec')
 
         # Signature cache to avoid re-checking the same binary multiple times
         $sigCache = @{}
@@ -111,7 +221,7 @@ function Get-ScheduledTasksSummary {
             # Tasks under Microsoft system paths can only be created by SYSTEM-level installers.
             # These are inherently trusted and should not generate noise.
             $isTrustedPath = $false
-            foreach ($tp in $trustedTaskPaths) {
+            foreach ($tp in $script:TrustedTaskPaths) {
                 if ($taskPath -like "$tp*") { $isTrustedPath = $true; break }
             }
 
@@ -169,7 +279,7 @@ function Get-ScheduledTasksSummary {
 
             # Check for suspicious (LOLBin) binaries
             $hasSuspiciousBin = $false
-            foreach ($s in $suspiciousBins) {
+            foreach ($s in $script:SuspiciousBinaries) {
                 if ($actions -match [regex]::Escape($s)) { $hasSuspiciousBin = $true; break }
             }
 
@@ -178,9 +288,7 @@ function Get-ScheduledTasksSummary {
 
             # Check for suspicious directories
             $inSuspiciousDir = $false
-            $suspiciousDirs = @("$env:TEMP", "$env:TMP", "$env:APPDATA",
-                                "$env:USERPROFILE\Downloads", "$env:PUBLIC")
-            foreach ($d in $suspiciousDirs) {
+            foreach ($d in $script:SuspiciousDirectories) {
                 if ($actions -like "*$d*") { $inSuspiciousDir = $true; break }
             }
 
@@ -547,14 +655,7 @@ function Get-PowerShellHistorySummary {
         $history = Get-Content -Path $historyPath -Tail $Lines -ErrorAction SilentlyContinue
         if (-not $history) { return @() }
 
-        $suspiciousPatterns = @(
-            'Invoke-Expression', 'iex\s', 'IEX\s', 'DownloadString', 'DownloadFile',
-            'Net\.WebClient', 'Invoke-WebRequest', 'Start-BitsTransfer',
-            'New-Object\s+IO\.MemoryStream', 'FromBase64String', '-enc\s',
-            '-EncodedCommand', 'Set-MpPreference', 'Add-MpPreference',
-            'reg\s+add', 'schtasks\s+/create', 'sc\.exe\s+create'
-        )
-        $pattern = ($suspiciousPatterns -join '|')
+        $pattern = ($script:SuspiciousHistoryPatterns -join '|')
 
         $allLines = Get-Content $historyPath -ErrorAction SilentlyContinue
         $totalLines = if ($allLines) { $allLines.Count } else { 0 }
@@ -604,14 +705,8 @@ function Get-PrefetchFilesSummary {
             Sort-Object LastWriteTime -Descending |
             Select-Object -First $Limit
 
-        $suspiciousExes = @('POWERSHELL','CMD','WSCRIPT','CSCRIPT','MSHTA','REGSVR32',
-                            'RUNDLL32','CERTUTIL','BITSADMIN','PSEXEC','MIMIKATZ','PROCDUMP')
-
-        # Prefetch filenames for standard Windows system binaries — these are always present
-        # on healthy systems and should not be flagged. Only truly unusual LOLBin usage
-        # (from non-system paths) would show a different prefetch entry.
-        $systemBinariesPrefetch = @('POWERSHELL.EXE','CMD.EXE','RUNDLL32.EXE','MSIEXEC.EXE',
-                                    'REGSVR32.EXE','BITSADMIN.EXE','CERTUTIL.EXE')
+        $suspiciousExes = $script:SuspiciousBinariesUpper
+        $systemBinariesPrefetch = $script:SystemBinariesPrefetch
 
         $results = foreach ($f in $files) {
             $exeName = ($f.BaseName -replace '-[A-F0-9]+$', '')
@@ -685,19 +780,12 @@ function Get-UnusualServicesSummary {
 
             # --- Path check ---
             $inSuspiciousPath = $false
-            $suspiciousDirs = @("$env:TEMP","$env:TMP",
-                                "$env:USERPROFILE\Desktop","$env:USERPROFILE\Downloads","$env:PUBLIC")
-            foreach ($d in $suspiciousDirs) {
+            foreach ($d in $script:SuspiciousDirectories) {
                 if ($binaryPath -like "*$d*") { $inSuspiciousPath = $true; [void]$reasons.Add("Suspicious path"); break }
             }
 
             $inTrustedPath = $false
-            $trustedDirs = @("$env:ProgramFiles","${env:ProgramFiles(x86)}",
-                             "$env:windir\System32","$env:windir\SysWOW64",
-                             "$env:ProgramData\Microsoft\",
-                             "$env:ProgramFiles\Common Files\",
-                             "$env:ProgramFiles\WindowsApps\")
-            foreach ($d in $trustedDirs) {
+            foreach ($d in $script:TrustedDirectories) {
                 if ($binaryPath -like "$d*" -or $binaryPath -like "*$d*") { $inTrustedPath = $true; break }
             }
             if (-not $inTrustedPath -and -not $whitelisted) {
@@ -715,9 +803,7 @@ function Get-UnusualServicesSummary {
             # Skip keyword check for Microsoft-signed services (prevents 'Antivirus' false positive)
             $isMicrosoftSigned = ($sig -like 'Valid*Microsoft*')
             if (-not $isMicrosoftSigned) {
-                $badWords = @('hack','crack','keygen','trojan','virus','malware','backdoor',
-                              'rootkit','exploit','payload','keylogger','spy','inject')
-                foreach ($w in $badWords) {
+                foreach ($w in $script:MaliciousKeywords) {
                     if ($displayLower -like "*$w*") {
                         [void]$reasons.Add("Suspicious keyword: $w")
                         break
@@ -987,26 +1073,8 @@ function Get-RunningProcessesSummary {
     try {
         $procs = Get-CimInstance -ClassName Win32_Process -ErrorAction Stop
 
-        $suspiciousNames = @('powershell','pwsh','cmd','wscript','cscript','mshta',
-                             'regsvr32','rundll32','certutil','bitsadmin','msiexec',
-                             'psexec','mimikatz','procdump','nc','ncat')
-
-        # Known-good executables that would otherwise be flagged (e.g. powershell from VS Code)
-        $trustedProcessPaths = @(
-            "$env:windir\System32\WindowsPowerShell\",
-            "$env:windir\System32\cmd.exe",
-            "$env:windir\System32\msiexec.exe",
-            "$env:windir\System32\rundll32.exe",
-            "$env:windir\SysWOW64\msiexec.exe",
-            "$env:windir\SysWOW64\rundll32.exe",
-            "$env:ProgramFiles\WindowsApps\",
-            "$env:windir\SystemApps\",
-            # Microsoft PowerToys (runs from AppData\Local\PowerToys — legitimately signed)
-            "$env:LOCALAPPDATA\PowerToys\",
-            # Common signed tools that run from user-profile paths
-            "$env:LOCALAPPDATA\Microsoft\",
-            "$env:LOCALAPPDATA\Programs\Microsoft VS Code\"
-        )
+        $suspiciousNames = $script:SuspiciousBinaries
+        $trustedProcessPaths = $script:TrustedProcessPaths
 
         $results = foreach ($p in $procs) {
             if (-not $p.ExecutablePath) { continue }
@@ -1025,9 +1093,7 @@ function Get-RunningProcessesSummary {
             foreach ($s in $suspiciousNames) {
                 if ($name -like "*$s*") { $risk = 'Medium'; break }
             }
-            $suspiciousDirs = @("$env:TEMP","$env:TMP","$env:APPDATA\Local\Temp",
-                                "$env:USERPROFILE\Downloads","$env:PUBLIC")
-            foreach ($d in $suspiciousDirs) {
+            foreach ($d in $script:SuspiciousDirectories) {
                 if ($path -like "$d*") { $risk = 'High'; break }
             }
 

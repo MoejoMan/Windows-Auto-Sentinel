@@ -250,6 +250,10 @@ if not exist "Win_Auto_Sentinel_GUI.ps1" (
     echo  [ERROR] Missing: Win_Auto_Sentinel_GUI.ps1
     set "missing=1"
 )
+if not exist "gui.html" (
+    echo  [ERROR] Missing: gui.html
+    set "missing=1"
+)
 if not exist "legitimate_services.txt" (
     echo  [WARN]  Missing: legitimate_services.txt (will use defaults)
 )

@@ -20,7 +20,8 @@ param(
     [string]$JSONPath   = '',
     [Alias('DryRun')]
     [switch]$WhatIf,
-    [switch]$AutoOpen
+    [switch]$AutoOpen,
+    [switch]$Log
 )
 
 # ============================================================================
@@ -31,6 +32,12 @@ $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 # Import functions
 . "$PSScriptRoot\Win_Auto_Sentinel_Functions.ps1"
+
+# Enable optional file logging
+if ($Log) {
+    Enable-WASLog
+    Write-WASLog "Session started  Computer=$env:COMPUTERNAME  User=$env:USERNAME  Admin=$(Test-IsAdministrator)"
+}
 
 # Banner
 Write-Host ''
@@ -152,11 +159,13 @@ if ($WhatIf) {
 # ============================================================================
 Write-Host '  Starting scans...' -ForegroundColor White
 Write-Host ''
+Write-WASLog 'Starting scans'
 
 # Use an OrderedDictionary so sections appear in a logical, consistent order
 $results = [ordered]@{}
 
 # --- Persistence mechanisms (highest priority) ---
+Write-WASLog 'Category: Scheduled Tasks'
 $results['Scheduled Tasks']       = Get-ScheduledTasksSummary
 $results['Registry Run Keys']     = Get-RegistryRunKeysSummary
 $results['Startup Folders']       = Get-StartupFoldersSummary
@@ -184,6 +193,7 @@ $results['Alternate Data Streams']= Get-AlternateDataStreamsSummary
 $results['USB Device History']    = Get-USBHistorySummary
 $results['Hosts File']            = Get-HostsFileEntriesSummary
 $results['Firewall Rules']        = Get-FirewallRulesSummary
+Write-WASLog "All scans complete  TotalCategories=$($results.Count)"
 
 # ============================================================================
 # RISK SUMMARY DASHBOARD
@@ -310,5 +320,6 @@ Write-Host '   Use -ExportCSV / -ExportJSON for machine-readable output.' -Foreg
 Write-Host '   Run as Administrator for full scan coverage.' -ForegroundColor Gray
 Write-Host '  ============================================================' -ForegroundColor Cyan
 Write-Host ''
+Write-WASLog "Session finished  Elapsed=$([Math]::Round($elapsed.TotalSeconds,1))s  Critical=$($riskCounts.Critical)  High=$($riskCounts.High)"
 Write-Host '  All done! You can close this window.' -ForegroundColor Green
 Write-Host ''

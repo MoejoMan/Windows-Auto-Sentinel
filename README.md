@@ -76,6 +76,7 @@ Double-click `run.bat` — it checks prerequisites, requests admin elevation, th
 .\Win_Auto_Sentinel_Main.ps1             # CLI mode
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -AutoOpen  # Scan + auto-open report
 .\Win_Auto_Sentinel_Main.ps1 -WhatIf     # Dry run — see what will be scanned
+.\Win_Auto_Sentinel_Main.ps1 -Log        # Write a timestamped log file alongside the script
 ```
 
 **New to this?** Read [QUICKSTART.txt](QUICKSTART.txt) — a plain-text, 5-step guide.
@@ -191,6 +192,12 @@ This opens your browser to a local dashboard where you can:
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -OutputDir "C:\Reports"
 ```
 
+### CLI Mode — Enable File Logging
+```powershell
+.\Win_Auto_Sentinel_Main.ps1 -ExportHTML -Log
+```
+Creates a timestamped `.log` file (e.g. `WinAutoSentinel_20260225_143012.log`) in the project directory with scan start/end times, category progress, and error details.
+
 ### Dry-Run Mode — See What Will Be Scanned
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -WhatIf
@@ -270,18 +277,22 @@ The file `legitimate_services.txt` defines patterns for known-good services. Ser
 ```
 run.bat                         ← One-click launcher (prereq checks + 6-option menu)
 QUICKSTART.txt                  ← Plain-text 5-step quick start guide
-Win_Auto_Sentinel_GUI.ps1       ← Web GUI launcher (local HTTP server + embedded SPA)
+Win_Auto_Sentinel_GUI.ps1       ← Web GUI launcher (local HTTP server + REST API)
+gui.html                        ← GUI single-page application (HTML/CSS/JS)
 Win_Auto_Sentinel_Main.ps1      ← CLI entry point, orchestration, console output, export, -WhatIf mode
-Win_Auto_Sentinel_Functions.ps1 ← All 17 scan functions + HTML report generator
+Win_Auto_Sentinel_Functions.ps1 ← Shared constants, logging, 17 scan functions, HTML report generator
 legitimate_services.txt         ← Service whitelist (editable)
 SECURITY.md                     ← Full transparency & security audit document
 LICENSE                         ← MIT License
 examples/                       ← Reference forensic collection scripts
+Tests/                          ← Pester test suite
 ```
 
 **Design principles:**
 - Every scan function returns `[PSCustomObject[]]` with a `Category` and `Risk` property
 - `[ordered]@{}` dictionary preserves section order (no random shuffling)
+- Shared `$script:` constants (suspicious binaries, directories, keywords, etc.) defined once and reused across all scan functions — no duplication
+- Optional file logging via `Enable-WASLog` / `Write-WASLog` (timestamped, append-safe)
 - All string operations use `Get-TruncatedString` to prevent `Substring` crashes
 - `Get-CimInstance` replaces deprecated `Get-WmiObject`
 - `Get-WinEvent` replaces deprecated `Get-EventLog`
@@ -290,9 +301,10 @@ examples/                       ← Reference forensic collection scripts
 - Signature results are cached per-binary to avoid redundant crypto operations
 
 **GUI architecture:**
-- PowerShell `HttpListener` serves an embedded HTML5/CSS3/JS single-page application on localhost
+- PowerShell `HttpListener` serves `gui.html` (an external HTML5/CSS3/JS single-page application) on localhost
+- GUI markup lives in its own file for proper syntax highlighting, linting, and maintainability
 - Background scanning via PowerShell Runspaces with `[hashtable]::Synchronized()` for thread-safe state
-- REST API design: `GET /` (SPA), `GET /api/info`, `POST /api/scan`, `GET /api/status`
+- REST API design: `GET /` (SPA), `GET /api/info`, `POST /api/scan`, `GET /api/status`, `POST /api/shutdown`
 - JavaScript polls `/api/status` every 600ms for real-time progress updates
 - All charts rendered with inline SVG — zero external libraries
 
