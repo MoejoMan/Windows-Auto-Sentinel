@@ -1,87 +1,205 @@
-# WinAutoSentinel Main Script
-# Entry point for Windows autostart and persistence review
-# Framework only – add scan logic and functions as needed
-
-# Script metadata
+#Requires -Version 5.1
 <#
-    WinAutoSentinel
-    Purpose: Review and summarize Windows autostart and persistence mechanisms
-    Author: [Your Name]
-    License: MIT
+    WinAutoSentinel - Main Entry Point
+    Purpose : Review and summarise Windows autostart/persistence mechanisms
+    Author  : WinAutoSentinel Contributors
+    License : MIT
+    Usage   : .\Win_Auto_Sentinel_Main.ps1 [-ExportHTML] [-ExportCSV] [-ExportJSON] [-OutputDir <path>]
+              Run elevated (as Administrator) for full results.
 #>
 
 param(
     [switch]$ExportHTML,
-    [string]$OutputPath = "WinAutoSentinel_Report.html"
+    [switch]$ExportCSV,
+    [switch]$ExportJSON,
+    [string]$OutputDir = $PSScriptRoot,
+    [string]$HTMLPath   = '',
+    [string]$CSVPath    = '',
+    [string]$JSONPath   = ''
 )
 
-# Import functions if split into a second file
+# ============================================================================
+# INITIALISATION
+# ============================================================================
+$ErrorActionPreference = 'Continue'
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+# Import functions
 . "$PSScriptRoot\Win_Auto_Sentinel_Functions.ps1"
 
-# Scan scheduled tasks
-$scheduledTasks = Get-ScheduledTasksSummary
-# Scan registry Run/RunOnce keys
-$registryRunKeys = Get-RegistryRunKeysSummary
-# Scan startup folders
-$startupFolders = Get-StartupFoldersSummary
-# Scan USB device history
-$usbHistory = Get-USBHistorySummary
-# Scan browser extensions
-$browserExtensions = Get-BrowserExtensionsSummary
-# Scan PowerShell history
-$psHistory = Get-PowerShellHistorySummary
-# Scan prefetch files
-$prefetchFiles = Get-PrefetchFilesSummary
-# Scan unusual services
-$unusualServices = Get-UnusualServicesSummary
-# Scan event log entries
-$eventLogEntries = Get-EventLogEntriesSummary
-# Scan hosts file entries
-$hostsFileEntries = Get-HostsFileEntriesSummary
-# Scan firewall rules
-$firewallRules = Get-FirewallRulesSummary
+# Banner
+Write-Host ''
+Write-Host '  ============================================================' -ForegroundColor Cyan
+Write-Host '   WinAutoSentinel - Windows Autostart & Persistence Review'    -ForegroundColor Cyan
+Write-Host '  ============================================================' -ForegroundColor Cyan
+Write-Host "   Computer : $env:COMPUTERNAME"           -ForegroundColor Gray
+Write-Host "   User     : $env:USERNAME"               -ForegroundColor Gray
+Write-Host "   Date     : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Gray
 
-# Group and present results
-$results = @{
-    "Scheduled Tasks" = $scheduledTasks
-    "Registry Run Keys" = $registryRunKeys
-    "Startup Folders" = $startupFolders
-    "USB Device History" = $usbHistory
-    "Browser Extensions" = $browserExtensions
-    "PowerShell History" = $psHistory
-    "Prefetch Files" = $prefetchFiles
-    "Unusual Services" = $unusualServices
-    "Event Log Entries" = $eventLogEntries
-    "Hosts File Entries" = $hostsFileEntries
-    "Firewall Rules" = $firewallRules
+$isAdmin = Test-IsAdministrator
+if ($isAdmin) {
+    Write-Host '   Elevated : Yes (full scan)' -ForegroundColor Green
+} else {
+    Write-Host '   Elevated : No  (some scans will be limited)' -ForegroundColor Yellow
+    Write-Host '   Tip: Run as Administrator for complete results.' -ForegroundColor Yellow
 }
+Write-Host '  ============================================================' -ForegroundColor Cyan
+Write-Host ''
 
-foreach ($category in $results.Keys) {
-    Write-Host "\n=== $category ===" -ForegroundColor Yellow
-    foreach ($item in $results[$category]) {
-        Write-Host "- $item"
+# ============================================================================
+# RUN ALL SCANS
+# ============================================================================
+Write-Host '  Starting scans...' -ForegroundColor White
+Write-Host ''
+
+# Use an OrderedDictionary so sections appear in a logical, consistent order
+$results = [ordered]@{}
+
+# --- Persistence mechanisms (highest priority) ---
+$results['Scheduled Tasks']       = Get-ScheduledTasksSummary
+$results['Registry Run Keys']     = Get-RegistryRunKeysSummary
+$results['Startup Folders']       = Get-StartupFoldersSummary
+$results['WMI Persistence']       = Get-WMIPersistenceSummary
+$results['Unusual Services']      = Get-UnusualServicesSummary
+
+# --- Defence evasion ---
+$results['Defender Exclusions']   = Get-DefenderExclusionsSummary
+
+# --- Live system state ---
+$results['Running Processes']     = Get-RunningProcessesSummary
+$results['Network Connections']   = Get-NetworkConnectionsSummary
+
+# --- Browser & user activity ---
+$results['Browser Extensions']    = Get-BrowserExtensionsSummary
+$results['PowerShell History']    = Get-PowerShellHistorySummary
+
+# --- System artefacts ---
+$results['Prefetch Files']        = Get-PrefetchFilesSummary
+$results['Event Log Entries']     = Get-EventLogEntriesSummary
+$results['DNS Cache']             = Get-DNSCacheSummary
+
+# --- File system ---
+$results['Alternate Data Streams']= Get-AlternateDataStreamsSummary
+$results['USB Device History']    = Get-USBHistorySummary
+$results['Hosts File']            = Get-HostsFileEntriesSummary
+$results['Firewall Rules']        = Get-FirewallRulesSummary
+
+# ============================================================================
+# RISK SUMMARY DASHBOARD
+# ============================================================================
+Write-Host ''
+Write-Host '  ============================================================' -ForegroundColor Cyan
+Write-Host '   SCAN COMPLETE - RISK SUMMARY'                               -ForegroundColor Cyan
+Write-Host '  ============================================================' -ForegroundColor Cyan
+
+$riskOrder   = @('Critical','High','Medium','Low','Info')
+$riskColors  = @{ Critical = 'Red'; High = 'DarkYellow'; Medium = 'Yellow'; Low = 'Cyan'; Info = 'Gray' }
+$riskCounts  = @{ Critical = 0; High = 0; Medium = 0; Low = 0; Info = 0 }
+$totalItems  = 0
+
+foreach ($cat in $results.Keys) {
+    foreach ($item in $results[$cat]) {
+        $totalItems++
+        $r = if ($item.Risk) { $item.Risk } else { 'Info' }
+        if ($riskCounts.ContainsKey($r)) { $riskCounts[$r]++ }
     }
 }
 
-# Generate HTML report if requested
-if ($ExportHTML) {
-    New-HTMLReport -Results $results -OutputPath $OutputPath
+foreach ($r in $riskOrder) {
+    $count = $riskCounts[$r]
+    $color = $riskColors[$r]
+    $bar   = '#' * [Math]::Min($count, 50)
+    Write-Host "   $($r.PadRight(10)) : $($count.ToString().PadLeft(4))  $bar" -ForegroundColor $color
+}
+Write-Host "   $('Total'.PadRight(10)) : $($totalItems.ToString().PadLeft(4))" -ForegroundColor White
+Write-Host ''
+
+# ============================================================================
+# PER-CATEGORY CONSOLE OUTPUT
+# ============================================================================
+foreach ($category in $results.Keys) {
+    $items = $results[$category]
+    $count = if ($items) { @($items).Count } else { 0 }
+
+    # Category header
+    $catColor = 'Yellow'
+    if ($items | Where-Object { $_.Risk -eq 'Critical' }) { $catColor = 'Red' }
+    elseif ($items | Where-Object { $_.Risk -eq 'High' })   { $catColor = 'DarkYellow' }
+
+    Write-Host "  === $category ($count) ===" -ForegroundColor $catColor
+
+    if ($count -eq 0) {
+        Write-Host '      (no findings)' -ForegroundColor DarkGray
+    } else {
+        foreach ($item in $items) {
+            $risk  = if ($item.Risk) { $item.Risk } else { 'Info' }
+            $color = if ($riskColors.ContainsKey($risk)) { $riskColors[$risk] } else { 'Gray' }
+
+            # Build a concise one-liner from the first few meaningful properties
+            $props = $item.PSObject.Properties | Where-Object { $_.Name -notin @('Category','Risk') -and $_.Value }
+            $line  = ($props | Select-Object -First 4 | ForEach-Object { "$($_.Name): $($_.Value)" }) -join ' | '
+
+            Write-Host "    [$risk] " -ForegroundColor $color -NoNewline
+            Write-Host $line -ForegroundColor Gray
+        }
+    }
+    Write-Host ''
 }
 
-# Display helpful tips for reviewing findings
-Write-Host "\n=== Helpful Tips for Reviewing Findings ===" -ForegroundColor Cyan
-Write-Host "Scheduled Tasks: Look for tasks with unusual names, unknown publishers, or suspicious commands. Check task triggers and actions."
-Write-Host "Registry Run Keys: These run at startup. Verify all entries are from trusted software. Remove unknown entries carefully."
-Write-Host "Startup Folders: Files here run when any user logs in. Check file properties and signatures for legitimacy."
-Write-Host "USB History: Review device names and connection times. Look for unexpected or suspicious devices."
-Write-Host "Browser Extensions: Check extension permissions and publishers. Remove extensions you don't recognize or use."
-Write-Host "PowerShell History: Review recent commands for suspicious activity. Clear history if privacy is a concern."
-Write-Host "Prefetch Files: These show recently run programs. Look for unknown executables or suspicious file paths."
-Write-Host "Unusual Services: Services listed here are not in the known legitimate services database. Research each one."
-Write-Host "Event Log Entries: Look for error patterns, security events, or unusual system activity."
-Write-Host "Hosts File Entries: Custom entries can redirect traffic. Ensure all entries are legitimate."
-Write-Host "Firewall Rules: Review inbound/outbound rules. Unexpected open ports may indicate security risks."
-Write-Host "\nTip: Use the HTML export (-ExportHTML) for an interactive report with checkboxes to mark reviewed items."
-Write-Host "Tip: Research any unknown findings online before taking action. False positives are possible."
+# ============================================================================
+# EXPORTS
+# ============================================================================
+$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 
-Write-Host "\nFramework ready. Add scan logic and functions as needed."
+# HTML Report
+if ($ExportHTML) {
+    $htmlFile = if ($HTMLPath) { $HTMLPath } else { Join-Path $OutputDir "WinAutoSentinel_Report_$timestamp.html" }
+    New-HTMLReport -Results $results -OutputPath $htmlFile
+}
+
+# CSV Export
+if ($ExportCSV) {
+    $csvFile = if ($CSVPath) { $CSVPath } else { Join-Path $OutputDir "WinAutoSentinel_Export_$timestamp.csv" }
+    Write-Host "  [*] Exporting CSV..." -ForegroundColor DarkGray
+    try {
+        $allItems = foreach ($cat in $results.Keys) {
+            foreach ($item in $results[$cat]) { $item }
+        }
+        $allItems | Export-Csv -Path $csvFile -NoTypeInformation -Encoding UTF8
+        Write-Host "  [+] CSV saved: $csvFile" -ForegroundColor Green
+    } catch {
+        Write-Warning "  CSV export failed: $($_.Exception.Message)"
+    }
+}
+
+# JSON Export
+if ($ExportJSON) {
+    $jsonFile = if ($JSONPath) { $JSONPath } else { Join-Path $OutputDir "WinAutoSentinel_Export_$timestamp.json" }
+    Write-Host "  [*] Exporting JSON..." -ForegroundColor DarkGray
+    try {
+        $allItems = foreach ($cat in $results.Keys) {
+            foreach ($item in $results[$cat]) { $item }
+        }
+        $allItems | ConvertTo-Json -Depth 5 | Out-File -FilePath $jsonFile -Encoding UTF8
+        Write-Host "  [+] JSON saved: $jsonFile" -ForegroundColor Green
+    } catch {
+        Write-Warning "  JSON export failed: $($_.Exception.Message)"
+    }
+}
+
+# ============================================================================
+# WRAP-UP
+# ============================================================================
+$stopwatch.Stop()
+$elapsed = $stopwatch.Elapsed
+
+Write-Host '  ============================================================' -ForegroundColor Cyan
+Write-Host "   Scan completed in $([Math]::Round($elapsed.TotalSeconds, 1))s" -ForegroundColor Cyan
+if ($riskCounts.Critical -gt 0 -or $riskCounts.High -gt 0) {
+    Write-Host "   ACTION NEEDED: $($riskCounts.Critical) critical, $($riskCounts.High) high-risk findings." -ForegroundColor Red
+}
+Write-Host '   Use -ExportHTML for an interactive report with search and filtering.' -ForegroundColor Gray
+Write-Host '   Use -ExportCSV / -ExportJSON for machine-readable output.' -ForegroundColor Gray
+Write-Host '   Run as Administrator for full scan coverage.' -ForegroundColor Gray
+Write-Host '  ============================================================' -ForegroundColor Cyan
+Write-Host ''

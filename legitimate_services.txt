@@ -32,18 +32,33 @@ lsass
 services
 svchost
 system events broker
+
+# Windows Defender / Security
 windows defender antivirus service
 windows defender firewall
 windows security service
+windefend
+mdcoresvc
+webthreatdef*
+securityhealth*
+
+# Windows Update / Delivery / Servicing
 windows update
 bits
 cryptsvc
 trustedinstaller
 wscsvc
+usosvc
+dosvc
+delivery optimization
+
+# Core system event services
 sens
 event system
 com+ event system
 com+ system application
+
+# Networking
 distributed link tracking client
 server
 workstation
@@ -58,8 +73,14 @@ ike and authip ipsec keying modules
 ipsec policy agent
 windows firewall
 base filtering engine
+wlansvc
+wlan autoconfig
+
+# More Windows Defender
 windows defender security intelligence service
 microsoft defender antivirus service
+
+# Core infrastructure
 security accounts manager
 remote procedure call (rpc)
 remote procedure call (rpc) locator
@@ -67,6 +88,37 @@ windows management instrumentation
 windows time
 task scheduler
 secondary logon
+brokerinfrastructure
+background tasks infrastructure service
+dcomlauncher
+dcomlaunch
+dcom server process launcher
+coremessagingregistrar
+coremessaging
+dispbrokerdesktopsvc
+display policy service
+texinputmanagementservice
+text input management service
+wbiosrvc
+windows biometric service
+elanfpservice
+elan service
+sgrm*
+system guard runtime monitor*
+cdpsvc
+connected devices platform*
+dusmsvc
+data usage
+cbdhsvc*
+clipboard user service*
+cdpusersvc*
+connected devices platform user*
+onesyncsvc*
+sync host*
+wpnuserservice*
+windows push notifications user*
+
+# Application / System services
 application information
 application management
 background intelligent transfer service
@@ -273,6 +325,8 @@ epic*
 uplay*
 origin*
 battlenet*
+gamingservices*
+gaming services*
 
 # Communication & productivity
 discord*
@@ -284,6 +338,12 @@ slack*
 teams*
 outlook*
 office*
+clicktorunsvc
+microsoft office click-to-run*
+
+# Security & authentication
+gotrust*
+gotrustid*
 
 # Database & development
 sql*

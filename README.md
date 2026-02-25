@@ -1,138 +1,210 @@
-
 # WinAutoSentinel
 
-**A clear, interactive tool to review, understand, and learn about all major Windows autostart and persistence mechanisms on your system.**
+**A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard — all in pure PowerShell with zero external dependencies.**
 
 ---
-
 
 ## Purpose
 
-WinAutoSentinel is a free, portable, offline PowerShell tool (with optional Python reporting) that helps you review and understand what’s set to auto-run or persist on your Windows machine. It is designed for anyone who wants a straightforward way to see, review, and learn about startup and persistence items—without technical jargon or overwhelming alerts.
+WinAutoSentinel is a free, portable, offline PowerShell tool that helps you review and understand what's set to auto-run or persist on your Windows machine. It scans 17 categories of security-relevant artefacts, assigns risk levels (0-100 security score), and presents findings through either a web-based GUI or CLI.
 
-- **Clarity first:** Guides you through each item with clear questions and explanations.
-- **No pressure:** Read-only, no forced actions or automatic removals.
-- **Privacy-focused:** Fully offline, no data leaves your machine.
-- **Accessible:** Simple outputs, helpful comments, and organized results for all experience levels.
+**Designed as a companion to traditional antivirus** — WinAutoSentinel focuses on persistence mechanisms, autoruns, and configuration weaknesses that AV tools often overlook.
 
----
-
-
-## Key Features
-
-- **Scans common autostart and persistence locations (read-only):**
-  - Scheduled Tasks (all, with details)
-  - Registry Run/RunOnce keys (HKLM & HKCU)
-  - Startup folders (user & all users)
-  - Recent USB device history
-  - Browser extensions (Chrome/Edge/Firefox)
-  - Optional: PowerShell history, prefetch files, unusual services, event log entries
-
-- **Organized, review-based reporting:**
-  - Groups findings by category (e.g., Startup Programs, USB Devices)
-  - For each item, prompts: “Do you recognize this?” or “Does this look suspicious?”
-  - Provides context and tips for each section
-  - Highlights items for review, but leaves decisions to you
-
-- **User-friendly output:**
-  - Console: color-coded, grouped lists with review prompts
-  - HTML/Markdown: collapsible sections, checklists, and review dropdowns
-  - Summary: clear counts of items to review in each category
-  - Fix suggestions: safe, copy-paste commands (never auto-removes)
-
-- **Safe and portable:**
-  - Read-only by default (no changes made)
-  - Portable: single .ps1 file (or minimal modules)
-  - Helpful code comments
-  - One-liner run option (e.g., irm ... | iex)
-  - No data leaves your machine
+- **Interactive Web GUI** — Local browser-based dashboard with scan configuration, live progress, charts, and remediation tips
+- **Security Health Score** — 0-100 score with letter grade (A+ to F), weighted by finding severity
+- **Risk-scored findings** — Critical / High / Medium / Low / Info severity on every item
+- **Structured output** — All functions return proper PowerShell objects (filterable, sortable, exportable)
+- **Read-only** — No changes made, no forced actions, no automatic removals
+- **Privacy-focused** — Fully offline, nothing leaves your machine
+- **Signature verification** — Checks Authenticode signatures on binaries where relevant
 
 ---
 
-## Why Use WinAutoSentinel Instead of Other Tools?
+## Scans Performed (17 categories)
 
-Most autostart and persistence tools for Windows are built for advanced users or security professionals. They often produce long, technical lists or alerts that are hard to interpret if you’re not an expert.
-
-**WinAutoSentinel is different:**
-- Presents information in a clear, organized way for everyone
-- Helps you understand what runs at startup and why
-- Guides you through each item so you can make informed choices
-- No automatic scoring or overwhelming alerts—just straightforward review and context
-
----
-
-## Who Should Use This?
-- Anyone who wants to understand what runs at startup on their Windows system
-- Students, homelabbers, privacy-conscious users
-- People who want to regularly check their own machines and understand the results
-
----
-
-## Roadmap / MVP Scope
-- **v0.1:** Scheduled Tasks, Run keys, and Startup folders only, with console and basic HTML output.
-- Add one educational blurb per category.
-- Test on your machines and share feedback to help improve clarity and usefulness.
+| Category | What it checks | Requires Admin |
+|---|---|---|
+| **Scheduled Tasks** | Active tasks with action/trigger details and author info | No |
+| **Registry Run Keys** | HKLM/HKCU Run, RunOnce + WOW6432Node (32-bit on 64-bit) | No |
+| **Startup Folders** | Per-user and all-users startup directories | No |
+| **WMI Persistence** | Event filters, consumers (CommandLine + ActiveScript), bindings | No |
+| **Unusual Services** | Running auto-start services not whitelisted, unsigned, or in suspicious paths | No |
+| **Defender Exclusions** | Path, process, and extension exclusions in Windows Defender | No |
+| **Running Processes** | Processes from suspicious locations or with suspicious names | No |
+| **Network Connections** | Established/Listening TCP connections mapped to processes | No |
+| **Browser Extensions** | Chrome, Edge, and Firefox extensions with permission analysis | No |
+| **PowerShell History** | Recent commands with suspicious pattern detection | No |
+| **Prefetch Files** | Recently executed programs from Windows Prefetch | **Yes** |
+| **Event Log Entries** | Security (logon failures, account changes), System (service installs, errors) | **Yes** |
+| **DNS Cache** | Recent DNS resolver cache entries | No |
+| **Alternate Data Streams** | Hidden ADS in Desktop, Downloads, Documents, Temp | No |
+| **USB Device History** | Previously connected USB storage devices with serial numbers | No |
+| **Hosts File** | Non-default entries that may redirect traffic | No |
+| **Firewall Rules** | Enabled rules with port, address, and application filters | No |
 
 ---
 
 ## Usage
 
-### Basic Console Output
+### Web GUI (Recommended)
+```powershell
+.\Win_Auto_Sentinel_GUI.ps1
+```
+This opens your browser to a local dashboard where you can:
+- See system information at a glance
+- Toggle individual scan categories on/off
+- Confirm before scanning starts
+- Watch real-time progress per category
+- Explore an interactive results dashboard with:
+  - Security health score (0-100 with letter grade)
+  - SVG donut chart of risk distribution
+  - Auto-generated executive summary
+  - Search and filter by risk level
+  - Expandable category sections with per-finding details
+  - Review checkboxes to track your progress
+  - Copy-paste remediation commands
+  - CSV/JSON export and print-friendly output
+
+```powershell
+# Custom port:
+.\Win_Auto_Sentinel_GUI.ps1 -Port 9090
+
+# Don't auto-open browser:
+.\Win_Auto_Sentinel_GUI.ps1 -NoBrowser
+```
+
+### CLI Mode — Basic Console Output
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1
 ```
 
-### Generate Interactive HTML Report
+### CLI Mode — Generate Interactive HTML Report
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML
 ```
 
-The HTML report includes:
-- Collapsible sections for each scan category
-- Checkboxes to mark items you recognize
-- Visual highlighting for recognized items
-- Offline, shareable format for review
+### CLI Mode — Export to CSV or JSON
+```powershell
+.\Win_Auto_Sentinel_Main.ps1 -ExportCSV
+.\Win_Auto_Sentinel_Main.ps1 -ExportJSON
+```
+
+### CLI Mode — All Exports at Once
+```powershell
+.\Win_Auto_Sentinel_Main.ps1 -ExportHTML -ExportCSV -ExportJSON
+```
+
+### CLI Mode — Custom Output Directory
+```powershell
+.\Win_Auto_Sentinel_Main.ps1 -ExportHTML -OutputDir "C:\Reports"
+```
+
+### Run Elevated for Full Coverage
+```powershell
+# Right-click PowerShell → Run as Administrator, then:
+.\Win_Auto_Sentinel_GUI.ps1
+# or
+.\Win_Auto_Sentinel_Main.ps1 -ExportHTML
+```
 
 ---
 
-## Configuration and Maintenance
+## HTML Report Features
+
+The interactive HTML report (CLI mode) includes:
+- **Risk dashboard** — Critical/High/Medium/Low/Info counts at a glance
+- **Search** — Full-text search across all findings
+- **Risk filtering** — Click a severity level to show only those findings
+- **Collapsible sections** — Grouped by category, auto-expands for Critical/High
+- **Review checkboxes** — Mark items you've reviewed (greys them out)
+- **In-browser CSV/JSON export** — Export visible (filtered) findings
+- **Dark theme** — Easy on the eyes
+- **Fully offline** — No external resources, works without internet
+
+## Web GUI Features
+
+The web-based GUI (`Win_Auto_Sentinel_GUI.ps1`) provides an enhanced experience:
+- **3-view flow** — Configuration → Scanning Progress → Interactive Dashboard
+- **Scan configuration** — Toggle switches per category, Select All/Deselect All, admin-required badges
+- **Confirmation modal** — Review selection and estimated time before scanning
+- **Live progress** — Animated progress bar, per-category status indicators, live finding counts
+- **Security Health Score** — 0-100 weighted score with A+ to F letter grade
+- **SVG donut chart** — Visual risk distribution (pure SVG, no external libraries)
+- **Executive summary** — Auto-generated paragraph summarising findings and recommendations
+- **Category remediation** — Copy-paste PowerShell commands to fix common issues
+- **Keyboard shortcuts** — `/` to search, `Esc` to dismiss
+- **Print stylesheet** — Clean print-friendly layout
+- **Zero dependencies** — Self-contained PowerShell HTTP server, no npm/Node/Python/internet
+
+---
+
+## Risk Levels
+
+| Level | Meaning | Example |
+|---|---|---|
+| **Critical** | Very likely malicious or extremely dangerous | WMI CommandLine consumer, Defender exclusion for `powershell.exe` |
+| **High** | Strong indicator of compromise or misconfiguration | Unsigned service in Temp folder, hosts file redirecting google.com |
+| **Medium** | Warrants investigation | Task running `powershell.exe`, failed logon events |
+| **Low** | Mildly unusual but often benign | RunOnce entry, unsigned startup shortcut |
+| **Info** | Informational, no action needed | Normal USB device, DNS cache entry |
+
+---
+
+## Configuration
 
 ### Service Whitelist
-WinAutoSentinel uses a whitelist of known legitimate Windows services to reduce false positives in the "Unusual Services" scan. This whitelist is stored in a separate file called `legitimate_services.txt` for easy maintenance.
 
-**Security Considerations:**
-- The whitelist uses broad patterns (e.g., `adobe*`) to catch legitimate services from trusted vendors
-- **However, malicious services can potentially spoof these names** - always verify suspicious services by checking their binary path, digital signature, and description
-- Consider making patterns more specific if you prefer stricter filtering (more false positives but fewer missed threats)
-- The whitelist reduces noise but should not be your only verification method
+The file `legitimate_services.txt` defines patterns for known-good services. Services matching these patterns are excluded from the "Unusual Services" scan.
 
-**To update the service whitelist:**
-1. Open `legitimate_services.txt` in any text editor
-2. Add new legitimate service patterns (one per line)
-3. Use wildcards (*) for patterns (e.g., `microsoft*` matches all Microsoft services)
-4. Lines starting with `#` are comments and ignored
-5. Remove or comment out patterns for software you don't trust
+- One pattern per line, supports wildcards (`*`)
+- Lines starting with `#` are comments
+- Edit to add trusted software or tighten patterns
 
-**Example entries:**
+**Security note:** Broad patterns like `adobe*` reduce false positives but could mask spoofed service names. For stricter filtering, use more specific patterns (e.g., `adobe acrobat*` instead of `adobe*`).
+
+---
+
+## Architecture
+
 ```
-# Known legitimate services
-spooler
-wuauserv
-eventlog
-microsoft*
-windows*
-adobe*
-google*
+Win_Auto_Sentinel_GUI.ps1       ← Web GUI launcher (local HTTP server + embedded SPA)
+Win_Auto_Sentinel_Main.ps1      ← CLI entry point, orchestration, console output, export
+Win_Auto_Sentinel_Functions.ps1 ← All 17 scan functions + HTML report generator
+legitimate_services.txt         ← Service whitelist (editable)
+examples/                       ← Reference forensic collection scripts
 ```
 
-The tool will automatically load this file at runtime. If the file is missing, it falls back to basic filtering (Microsoft/Windows/system services only).
+**Design principles:**
+- Every scan function returns `[PSCustomObject[]]` with a `Category` and `Risk` property
+- `[ordered]@{}` dictionary preserves section order (no random shuffling)
+- All string operations use `Get-TruncatedString` to prevent `Substring` crashes
+- `Get-CimInstance` replaces deprecated `Get-WmiObject`
+- `Get-WinEvent` replaces deprecated `Get-EventLog`
+- Signature checks use actual `Get-AuthenticodeSignature`, not guesswork
+
+**GUI architecture:**
+- PowerShell `HttpListener` serves an embedded HTML5/CSS3/JS single-page application on localhost
+- Background scanning via PowerShell Runspaces with `[hashtable]::Synchronized()` for thread-safe state
+- REST API design: `GET /` (SPA), `GET /api/info`, `POST /api/scan`, `GET /api/status`
+- JavaScript polls `/api/status` every 600ms for real-time progress updates
+- All charts rendered with inline SVG — zero external libraries
+
+---
+
+## Requirements
+
+- PowerShell 5.1+ (ships with Windows 10/11)
+- Windows 10 / 11 / Server 2016+
+- Administrator elevation recommended (required for Prefetch and some Event Logs)
 
 ---
 
 ## License
+
 MIT License
 
 ---
 
 ## Contributing
+
 Pull requests, feedback, and suggestions are welcome.
