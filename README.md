@@ -12,6 +12,11 @@
 **A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard — all in pure PowerShell with zero external dependencies.**
 
 <p align="center">
+  <img src="images/AppWalkthrough.gif" alt="WinAutoSentinel Demo" width="700">
+  <br><em>Live demo — launch, scan, and review results</em>
+</p>
+
+<p align="center">
   <img src="images/image.png" alt="Security Score" width="700">
   <br><em>Security health score with risk breakdown</em>
 </p>
