@@ -331,4 +331,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Contributing
 
-Pull requests, feedback, and suggestions are welcome.
+Star if this saves you time hunting persistence!  
+Open an issue for bugs/ideas. PRs welcome.
