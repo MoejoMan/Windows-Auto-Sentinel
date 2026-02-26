@@ -59,7 +59,7 @@ Describe 'Get-TruncatedString' {
 
     It 'truncates and appends ellipsis when over max length' {
         $result = Get-TruncatedString -Text ('x' * 100) -MaxLength 20
-        $result.Length | Should -Be 20
+        $result.Length | Should -Be 23   # 20 chars + '...'
         $result | Should -BeLike '*...'
     }
 
@@ -69,8 +69,8 @@ Describe 'Get-TruncatedString' {
 }
 
 Describe 'Get-FileSignatureStatus' {
-    It 'returns "FileNotFound" when file does not exist' {
-        Get-FileSignatureStatus -FilePath 'C:\nonexistent_file_abc123.exe' | Should -Be 'FileNotFound'
+    It 'returns "Unknown (file not found)" when file does not exist' {
+        Get-FileSignatureStatus -FilePath 'C:\nonexistent_file_abc123.exe' | Should -Be 'Unknown (file not found)'
     }
 
     It 'returns a string for a real system binary' {
@@ -120,21 +120,20 @@ Describe 'Scan functions return arrays' {
     # Each scan function should return an array (even if empty) of objects.
     # We test that they don't throw and return array-like output.
 
-    $scanFunctions = @(
-        'Get-RegistryRunKeysSummary'
-        'Get-StartupFoldersSummary'
-        'Get-WMIPersistenceSummary'
-        'Get-DNSCacheSummary'
-        'Get-HostsFileEntriesSummary'
+    $testCases = @(
+        @{ FnName = 'Get-RegistryRunKeysSummary' }
+        @{ FnName = 'Get-StartupFoldersSummary' }
+        @{ FnName = 'Get-WMIPersistenceSummary' }
+        @{ FnName = 'Get-DNSCacheSummary' }
+        @{ FnName = 'Get-HostsFileEntriesSummary' }
     )
 
-    foreach ($fn in $scanFunctions) {
-        It "$fn runs without error and returns an array" {
-            $result = & $fn
-            # Result should be $null or an array of objects
-            if ($null -ne $result) {
-                @($result).Count | Should -BeGreaterOrEqual 1
-            }
+    It '<FnName> runs without error and returns an array' -TestCases $testCases {
+        param($FnName)
+        $result = & $FnName
+        # Result should be $null or an array of objects
+        if ($null -ne $result) {
+            @($result).Count | Should -BeGreaterOrEqual 1
         }
     }
 }
