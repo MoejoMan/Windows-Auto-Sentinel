@@ -8,6 +8,7 @@
 [![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://docs.microsoft.com/en-us/powershell/)
 [![Windows 10/11](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6.svg)](https://www.microsoft.com/windows)
 [![No Dependencies](https://img.shields.io/badge/Dependencies-None-green.svg)](#trust--transparency)
+[![Pester tests](https://github.com/MoejoMan/Windows-Auto-Sentinel/actions/workflows/pester.yml/badge.svg)](https://github.com/MoejoMan/Windows-Auto-Sentinel/actions/workflows/pester.yml)
 
 **A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard — all in pure PowerShell with zero external dependencies.**
 
@@ -312,6 +313,19 @@ Tests/                          ← Pester test suite
 - REST API design: `GET /` (SPA), `GET /api/info`, `POST /api/scan`, `GET /api/status`, `POST /api/shutdown`
 - JavaScript polls `/api/status` every 600ms for real-time progress updates
 - All charts rendered with inline SVG — zero external libraries
+
+---
+
+## Testing
+
+A Pester 5 suite in `Tests/` checks the shared constants and helper functions, confirms every scan function returns an array, and builds a sample HTML report. Run it from the project folder:
+
+```powershell
+Import-Module Pester -MinimumVersion 5.0
+Invoke-Pester -Path .\Tests -Output Detailed
+```
+
+The last local run on Windows PowerShell 5.1 gave 20 passed and 0 failed. GitHub Actions runs the same suite on a Windows runner for every push to `main` and every pull request. Scan tests are read only, like the tool itself.
 
 ---
 

@@ -1,0 +1,3 @@
+# Keep GitHub language statistics honest: this project is PowerShell.
+*.html linguist-detectable=false
+*.ps1 linguist-language=PowerShell

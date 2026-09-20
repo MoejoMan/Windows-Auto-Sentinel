@@ -27,6 +27,9 @@ WinAutoSentinel_Report.json
 *_Report.html
 *_Report.csv
 *_Report.json
+WinAutoSentinel_Report_*.html
+WinAutoSentinel_Report_*.csv
+WinAutoSentinel_Report_*.json
 
 # Ignore temporary test scripts
 Test-*.ps1
