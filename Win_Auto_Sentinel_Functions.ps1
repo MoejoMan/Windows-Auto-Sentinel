@@ -7,7 +7,7 @@
 Add-Type -AssemblyName System.Web -ErrorAction SilentlyContinue
 
 # ============================================================================
-# SHARED CONSTANTS  (single source of truth — used by all scan functions)
+# SHARED CONSTANTS  (single source of truth: used by all scan functions)
 # ============================================================================
 
 # LOLBin / living-off-the-land binaries (lowercase for case-insensitive matching)
@@ -40,7 +40,7 @@ $script:TrustedDirectories = @(
     "$env:ProgramFiles\WindowsApps\"
 )
 
-# Trusted process paths (more specific than TrustedDirectories — includes user-profile apps
+# Trusted process paths (more specific than TrustedDirectories: includes user-profile apps
 # that are legitimately signed, like VS Code and PowerToys)
 $script:TrustedProcessPaths = @(
     "$env:windir\System32\WindowsPowerShell\",
@@ -82,7 +82,7 @@ $script:SuspiciousHistoryPatterns = @(
     'reg\s+add', 'schtasks\s+/create', 'sc\.exe\s+create'
 )
 
-# Prefetch filenames for standard Windows system binaries — always present on healthy systems
+# Prefetch filenames for standard Windows system binaries: always present on healthy systems
 $script:SystemBinariesPrefetch = @(
     'POWERSHELL.EXE','CMD.EXE','RUNDLL32.EXE','MSIEXEC.EXE',
     'REGSVR32.EXE','BITSADMIN.EXE','CERTUTIL.EXE'
@@ -243,7 +243,7 @@ function Get-ScheduledTasksSummary {
                 continue
             }
 
-            # ----- Tier 2: Non-Microsoft tasks — use Authenticode + heuristics -----
+            # ----- Tier 2: Non-Microsoft tasks: use Authenticode + heuristics -----
             $risk = 'Info'
 
             # Resolve the primary executable path for signature checking
@@ -300,10 +300,10 @@ function Get-ScheduledTasksSummary {
             } elseif ($hasSuspiciousBin -and -not $isSigned) {
                 $risk = 'Medium'
             } elseif (-not $isSigned -and [string]::IsNullOrWhiteSpace($author)) {
-                # Unsigned with no author — mildly suspicious
+                # Unsigned with no author: mildly suspicious
                 $risk = 'Low'
             } elseif ($hasSuspiciousBin -and $isSigned) {
-                # Signed + LOLBin (e.g. legitimate tool using rundll32) — informational note
+                # Signed + LOLBin (e.g. legitimate tool using rundll32): informational note
                 $risk = 'Info'
             }
 
@@ -1001,7 +1001,7 @@ function Get-FirewallRulesSummary {
             $risk = 'Info'
             if ($r.Direction -eq 'Inbound' -and $r.Action -eq 'Allow') { $risk = 'Low' }
 
-            # Trust built-in Windows firewall rules — they ship with the OS and are managed
+            # Trust built-in Windows firewall rules: they ship with the OS and are managed
             # by Windows components. Identified by: Group property contains a resource string
             # reference (starts with @) which only Microsoft-shipped rules have, OR the
             # DisplayName matches well-known standard Windows rule patterns.

@@ -2,7 +2,7 @@
 
 **WinAutoSentinel is a read-only security scanner. It does not modify your system, contact any server, or collect any data.**
 
-This document exists because you *should* be skeptical of any tool that asks to scan your computer. Every claim below is verifiable by reading the source code — it's all plain-text PowerShell, no compiled binaries.
+This document exists because you *should* be skeptical of any tool that asks to scan your computer. Every claim below is verifiable by reading the source code: it's all plain-text PowerShell, no compiled binaries.
 
 ---
 
@@ -11,7 +11,7 @@ This document exists because you *should* be skeptical of any tool that asks to 
 | Claim | How to verify |
 |---|---|
 | **No network calls** | Search the codebase for `Invoke-WebRequest`, `Invoke-RestMethod`, `WebClient`, `HttpClient`, `DownloadString`, `curl`, `wget`. Zero results. The only network listener is `HttpListener` bound to `localhost` (your machine only, line ~986 of `Win_Auto_Sentinel_GUI.ps1`). |
-| **No data exfiltration** | Nothing is sent anywhere. Reports are saved locally to your chosen directory. The web GUI runs on `localhost:8765` — not accessible from other computers. |
+| **No data exfiltration** | Nothing is sent anywhere. Reports are saved locally to your chosen directory. The web GUI runs on `localhost:8765`, not accessible from other computers. |
 | **No registry writes** | Search for `Set-ItemProperty`, `New-ItemProperty`, `New-Item` on `HKLM`/`HKCU`. Zero results. All registry access is read-only via `Get-ItemProperty`. |
 | **No service modifications** | Search for `Stop-Service`, `Set-Service`, `Remove-Service`, `Start-Service`. Zero results (the strings in the GUI are display-only remediation *advice text*, not executed code). |
 | **No process killing** | Search for `Stop-Process`. Only appears as advice text in the GUI, never executed. |
@@ -54,11 +54,11 @@ Every scan function uses only `Get-*` cmdlets:
 
 The GUI (`Win_Auto_Sentinel_GUI.ps1`) runs a local HTTP server:
 
-- **Binds to `localhost` only** — Not `0.0.0.0`, not `*`. Other computers on your network cannot reach it.
-- **No authentication needed** — It's your machine talking to itself.
-- **Auto-opens your browser** — Navigates to `http://localhost:8765`. Use `-NoBrowser` to prevent this.
-- **Stops when you close the terminal** — Press `Ctrl+C` or close the PowerShell window.
-- **No persistent state** — Nothing is saved between sessions. No cookies, no databases, no config files.
+- **Binds to `localhost` only**: Not `0.0.0.0`, not `*`. Other computers on your network cannot reach it.
+- **No authentication needed**: It's your machine talking to itself.
+- **Auto-opens your browser**: Navigates to `http://localhost:8765`. Use `-NoBrowser` to prevent this.
+- **Stops when you close the terminal**: Press `Ctrl+C` or close the PowerShell window.
+- **No persistent state**: Nothing is saved between sessions. No cookies, no databases, no config files.
 
 ---
 
