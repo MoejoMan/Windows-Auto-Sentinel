@@ -10,11 +10,11 @@
 [![No Dependencies](https://img.shields.io/badge/Dependencies-None-green.svg)](#trust--transparency)
 [![Pester tests](https://github.com/MoejoMan/Windows-Auto-Sentinel/actions/workflows/pester.yml/badge.svg)](https://github.com/MoejoMan/Windows-Auto-Sentinel/actions/workflows/pester.yml)
 
-**A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard — all in pure PowerShell with zero external dependencies.**
+**A comprehensive, interactive Windows security review tool with a browser-based GUI, real-time scanning, risk scoring, and an interactive dashboard, all in pure PowerShell with zero external dependencies.**
 
 <p align="center">
   <img src="images/AppWalkthrough.gif" alt="WinAutoSentinel Demo" width="700">
-  <br><em>Live demo — launch, scan, and review results</em>
+  <br><em>Live demo: launch, scan, and review results</em>
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
 
 <p align="center">
   <img src="images/image3.png" alt="Scan Categories" width="700">
-  <br><em>Scan categories — choose what to scan</em>
+  <br><em>Scan categories: choose what to scan</em>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@
 
 <p align="center">
   <img src="images/CLI.png" alt="CLI Mode" width="700">
-  <br><em>CLI mode — console output with risk summary</em>
+  <br><em>CLI mode: console output with risk summary</em>
 </p>
 
 ---
@@ -55,7 +55,7 @@
 | **No data collection** | Nothing leaves your machine. The web GUI runs on `localhost` only. |
 | **No compiled binaries** | 100% plain-text PowerShell. Read every line yourself. |
 | **No external dependencies** | No npm, pip, NuGet, or CDN. Self-contained. |
-| **Dry-run mode** | Run `.\Win_Auto_Sentinel_Main.ps1 -WhatIf` to see exactly what each scan will read — without executing anything. |
+| **Dry-run mode** | Run `.\Win_Auto_Sentinel_Main.ps1 -WhatIf` to see exactly what each scan will read, without executing anything. |
 
 For a full security audit with verification commands, see **[SECURITY.md](SECURITY.md)**.
 
@@ -63,29 +63,29 @@ For a full security audit with verification commands, see **[SECURITY.md](SECURI
 
 ## Quick Start
 
-**Option 1 — Double-click** (easiest):
+**Option 1: Double-click** (easiest):
 ```
 run.bat
 ```
-Double-click `run.bat` — it checks prerequisites, requests admin elevation, then gives you a 6-option menu:
-1. **Web GUI** — Full interactive browser dashboard
-2. **Quick Scan** — GUI with the 5 most critical categories pre-selected
-3. **CLI + Report** — Console output + HTML report (auto-opens in browser)
-4. **Dry Run** — Preview what will be scanned, nothing executed
-5. **Desktop Shortcut** — Create a shortcut on your Desktop
-6. **Verify Integrity** — Show SHA256 hashes to check for tampering
+Double-click `run.bat`. It checks prerequisites, requests admin elevation, then gives you a 6-option menu:
+1. **Web GUI**: Full interactive browser dashboard
+2. **Quick Scan**: GUI with the 5 most critical categories pre-selected
+3. **CLI + Report**: Console output + HTML report (auto-opens in browser)
+4. **Dry Run**: Preview what will be scanned, nothing executed
+5. **Desktop Shortcut**: Create a shortcut on your Desktop
+6. **Verify Integrity**: Show SHA256 hashes to check for tampering
 
-**Option 2 — PowerShell**:
+**Option 2: PowerShell**:
 ```powershell
 .\Win_Auto_Sentinel_GUI.ps1              # Web GUI (recommended)
 .\Win_Auto_Sentinel_GUI.ps1 -QuickScan   # Web GUI with top-5 pre-selected
 .\Win_Auto_Sentinel_Main.ps1             # CLI mode
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -AutoOpen  # Scan + auto-open report
-.\Win_Auto_Sentinel_Main.ps1 -WhatIf     # Dry run — see what will be scanned
+.\Win_Auto_Sentinel_Main.ps1 -WhatIf     # Dry run: see what will be scanned
 .\Win_Auto_Sentinel_Main.ps1 -Log        # Write a timestamped log file alongside the script
 ```
 
-**New to this?** Read [QUICKSTART.txt](QUICKSTART.txt) — a plain-text, 5-step guide.
+**New to this?** Read [QUICKSTART.txt](QUICKSTART.txt), a plain-text, 5-step guide.
 
 ---
 
@@ -93,15 +93,15 @@ Double-click `run.bat` — it checks prerequisites, requests admin elevation, th
 
 WinAutoSentinel is a free, portable, offline PowerShell tool that helps you review and understand what's set to auto-run or persist on your Windows machine. It scans 17 categories of security-relevant artefacts, assigns risk levels (0-100 security score), and presents findings through either a web-based GUI or CLI.
 
-**Designed as a companion to traditional antivirus** — WinAutoSentinel focuses on persistence mechanisms, autoruns, and configuration weaknesses that AV tools often overlook.
+**Designed as a companion to traditional antivirus.** WinAutoSentinel focuses on persistence mechanisms, autoruns, and configuration weaknesses that AV tools often overlook.
 
-- **Interactive Web GUI** — Local browser-based dashboard with scan configuration, live progress, charts, and remediation tips
-- **Security Health Score** — 0-100 score with letter grade (A+ to F), weighted by finding severity
-- **Risk-scored findings** — Critical / High / Medium / Low / Info severity on every item
-- **Structured output** — All functions return proper PowerShell objects (filterable, sortable, exportable)
-- **Read-only** — No changes made, no forced actions, no automatic removals
-- **Privacy-focused** — Fully offline, nothing leaves your machine
-- **Signature verification** — Checks Authenticode signatures on binaries where relevant
+- **Interactive Web GUI**: Local browser-based dashboard with scan configuration, live progress, charts, and remediation tips
+- **Security Health Score**: 0-100 score with letter grade (A+ to F), weighted by finding severity
+- **Risk-scored findings**: Critical / High / Medium / Low / Info severity on every item
+- **Structured output**: All functions return proper PowerShell objects (filterable, sortable, exportable)
+- **Read-only**: No changes made, no forced actions, no automatic removals
+- **Privacy-focused**: Fully offline, nothing leaves your machine
+- **Signature verification**: Checks Authenticode signatures on binaries where relevant
 
 ---
 
@@ -135,13 +135,13 @@ WinAutoSentinel is a free, portable, offline PowerShell tool that helps you revi
 ```
 run.bat
 ```
-Double-click `run.bat` — it auto-checks prerequisites (PowerShell version, required files), requests admin elevation, then presents a menu:
-1. **Web GUI** — Interactive browser dashboard (default)
-2. **Quick Scan** — GUI with top-5 critical categories pre-selected, auto-starts
-3. **CLI Scan** — Console output + HTML report that auto-opens in your browser
-4. **Dry Run** — Shows what each scan reads, then exits (nothing executed)
-5. **Desktop Shortcut** — Creates a one-click shortcut on your Desktop
-6. **Verify Integrity** — Displays SHA256 hashes of all project files
+Double-click `run.bat`. It auto-checks prerequisites (PowerShell version, required files), requests admin elevation, then presents a menu:
+1. **Web GUI**: Interactive browser dashboard (default)
+2. **Quick Scan**: GUI with top-5 critical categories pre-selected, auto-starts
+3. **CLI Scan**: Console output + HTML report that auto-opens in your browser
+4. **Dry Run**: Shows what each scan reads, then exits (nothing executed)
+5. **Desktop Shortcut**: Creates a one-click shortcut on your Desktop
+6. **Verify Integrity**: Displays SHA256 hashes of all project files
 
 ### Web GUI
 ```powershell
@@ -172,39 +172,39 @@ This opens your browser to a local dashboard where you can:
 .\Win_Auto_Sentinel_GUI.ps1 -NoBrowser
 ```
 
-### CLI Mode — Basic Console Output
+### CLI Mode: Basic Console Output
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1
 ```
 
-### CLI Mode — Generate Interactive HTML Report
+### CLI Mode: Generate Interactive HTML Report
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML
 ```
 
-### CLI Mode — Export to CSV or JSON
+### CLI Mode: Export to CSV or JSON
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -ExportCSV
 .\Win_Auto_Sentinel_Main.ps1 -ExportJSON
 ```
 
-### CLI Mode — All Exports at Once
+### CLI Mode: All Exports at Once
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -ExportCSV -ExportJSON
 ```
 
-### CLI Mode — Custom Output Directory
+### CLI Mode: Custom Output Directory
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -OutputDir "C:\Reports"
 ```
 
-### CLI Mode — Enable File Logging
+### CLI Mode: Enable File Logging
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -ExportHTML -Log
 ```
 Creates a timestamped `.log` file (e.g. `WinAutoSentinel_20260225_143012.log`) in the project directory with scan start/end times, category progress, and error details.
 
-### Dry-Run Mode — See What Will Be Scanned
+### Dry-Run Mode: See What Will Be Scanned
 ```powershell
 .\Win_Auto_Sentinel_Main.ps1 -WhatIf
 ```
@@ -223,32 +223,32 @@ Lists every `Get-*` cmdlet and path each scan will access, then exits without ru
 ## HTML Report Features
 
 The interactive HTML report (CLI mode) includes:
-- **Risk dashboard** — Critical/High/Medium/Low/Info counts at a glance
-- **Search** — Full-text search across all findings
-- **Risk filtering** — Click a severity level to show only those findings
-- **Collapsible sections** — Grouped by category, auto-expands for Critical/High
-- **Review checkboxes** — Mark items you've reviewed (greys them out)
-- **In-browser CSV/JSON export** — Export visible (filtered) findings
-- **Dark theme** — Easy on the eyes
-- **Fully offline** — No external resources, works without internet
+- **Risk dashboard**: Critical/High/Medium/Low/Info counts at a glance
+- **Search**: Full-text search across all findings
+- **Risk filtering**: Click a severity level to show only those findings
+- **Collapsible sections**: Grouped by category, auto-expands for Critical/High
+- **Review checkboxes**: Mark items you've reviewed (greys them out)
+- **In-browser CSV/JSON export**: Export visible (filtered) findings
+- **Dark theme**: Easy on the eyes
+- **Fully offline**: No external resources, works without internet
 
 ## Web GUI Features
 
 The web-based GUI (`Win_Auto_Sentinel_GUI.ps1`) provides an enhanced experience:
-- **3-view flow** — Configuration → Scanning Progress → Interactive Dashboard
-- **Scan presets** — Quick Scan, Full Scan, Persistence Only, Network Focus with one click
-- **Onboarding banner** — First-time visitors see a guide explaining what the tool does and doesn't do
-- **Scan-complete notification** — Audio chime, notification bar, and title bar update when done
-- **Scan configuration** — Toggle switches per category, Select All/Deselect All, admin-required badges
-- **Confirmation modal** — Review selection and estimated time before scanning
-- **Live progress** — Animated progress bar, per-category status indicators, live finding counts
-- **Security Health Score** — 0-100 weighted score with A+ to F letter grade
-- **SVG donut chart** — Visual risk distribution (pure SVG, no external libraries)
-- **Executive summary** — Auto-generated paragraph summarising findings and recommendations
-- **Category remediation** — Copy-paste PowerShell commands to fix common issues
-- **Keyboard shortcuts** — `/` to search, `Esc` to dismiss
-- **Print stylesheet** — Clean print-friendly layout
-- **Zero dependencies** — Self-contained PowerShell HTTP server, no npm/Node/Python/internet
+- **3-view flow**: Configuration → Scanning Progress → Interactive Dashboard
+- **Scan presets**: Quick Scan, Full Scan, Persistence Only, Network Focus with one click
+- **Onboarding banner**: First-time visitors see a guide explaining what the tool does and doesn't do
+- **Scan-complete notification**: Audio chime, notification bar, and title bar update when done
+- **Scan configuration**: Toggle switches per category, Select All/Deselect All, admin-required badges
+- **Confirmation modal**: Review selection and estimated time before scanning
+- **Live progress**: Animated progress bar, per-category status indicators, live finding counts
+- **Security Health Score**: 0-100 weighted score with A+ to F letter grade
+- **SVG donut chart**: Visual risk distribution (pure SVG, no external libraries)
+- **Executive summary**: Auto-generated paragraph summarising findings and recommendations
+- **Category remediation**: Copy-paste PowerShell commands to fix common issues
+- **Keyboard shortcuts**: `/` to search, `Esc` to dismiss
+- **Print stylesheet**: Clean print-friendly layout
+- **Zero dependencies**: Self-contained PowerShell HTTP server, no npm/Node/Python/internet
 
 ---
 
@@ -297,7 +297,7 @@ Tests/                          ← Pester test suite
 **Design principles:**
 - Every scan function returns `[PSCustomObject[]]` with a `Category` and `Risk` property
 - `[ordered]@{}` dictionary preserves section order (no random shuffling)
-- Shared `$script:` constants (suspicious binaries, directories, keywords, etc.) defined once and reused across all scan functions — no duplication
+- Shared `$script:` constants (suspicious binaries, directories, keywords, etc.) defined once and reused across all scan functions, with no duplication
 - Optional file logging via `Enable-WASLog` / `Write-WASLog` (timestamped, append-safe)
 - All string operations use `Get-TruncatedString` to prevent `Substring` crashes
 - `Get-CimInstance` replaces deprecated `Get-WmiObject`
@@ -312,7 +312,7 @@ Tests/                          ← Pester test suite
 - Background scanning via PowerShell Runspaces with `[hashtable]::Synchronized()` for thread-safe state
 - REST API design: `GET /` (SPA), `GET /api/info`, `POST /api/scan`, `GET /api/status`, `POST /api/shutdown`
 - JavaScript polls `/api/status` every 600ms for real-time progress updates
-- All charts rendered with inline SVG — zero external libraries
+- All charts rendered with inline SVG, with zero external libraries
 
 ---
 
